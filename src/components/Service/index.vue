@@ -79,7 +79,13 @@
                                 <a-input-number
                                     style="width: 100%"
                                     v-model:value="serviceDetail.price"
-                                    :formatter="(a: any) => a.replace(/\B(?=(\d{3})+(?!\d))/g,',',)"
+                                    :formatter="
+                                        (a: any) =>
+                                            a.replace(
+                                                /\B(?=(\d{3})+(?!\d))/g,
+                                                ',',
+                                            )
+                                    "
                                     :parser="(a: any) => a.replace(/,/g, '')"
                                     prefix="VNĐ"
                                 />
@@ -98,19 +104,10 @@
                     </a-row>
                 </a-form>
             </a-modal>
-            <a-drawer
-                :title="serviceDetail.name"
-                size="large"
-                :open="openDrawer"
-                :closable="false"
-                @close="onClose"
-            >
-                <template #extra>
-                    <a-button style="margin-right: 8px" @click="onClose">
-                        Đóng
-                    </a-button>
-                </template>
-            </a-drawer>
+            <ServiceDrawer
+                v-model:open="openDrawer"
+                :serviceDetail="serviceDetail"
+            />
         </div>
     </div>
 </template>
@@ -130,6 +127,7 @@ import {
 import { message, Modal } from "ant-design-vue";
 import { ExclamationCircleOutlined } from "@ant-design/icons-vue";
 import { createVNode } from "vue";
+import ServiceDrawer from "./ServiceDrawer.vue";
 
 const services = ref<Service[]>([]);
 const serviceDetail = ref<Service>({ ...serviceDefaultData });
@@ -148,7 +146,7 @@ const showModal = (isEdit: boolean, data?: Service) => {
 
 const handleCancelModal = () => {
     openModal.value = false;
-    serviceDetail.value = serviceDefaultData;
+    serviceDetail.value = { ...serviceDefaultData };
 };
 
 const showDrawer = (data: Service) => {

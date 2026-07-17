@@ -13,17 +13,17 @@ export const useAccountStore = defineStore("account", {
     },
     getters: {},
     actions: {
-        saveAccount(data: any) {
+        saveAccount(data: Account) {
             if(!data) this.loginErrorActions("Lỗi data trả về");
-            this.account.accountId = data.accountId;
-            this.account.fullName = data.fullName;
-            this.account.username = data.username;
-            this.account.email = data.email;
-            this.account.role = data.role;
-            this.account.dateOfBirth = data.dateOfBirth;
-            this.account.phoneNumber = data.phoneNumber;
+            const listKeys: (keyof Account)[] = Object.keys(this.account);
+
+            listKeys.forEach((key: keyof Account) => {
+                if(data[key]) {
+                    this.account[key] = data[key];
+                }
+            });
             
-            CookieService.set("token", data.token);
+            CookieService.set("token", data.token || "");
             CookieService.set("accountId", data.accountId, 7);
         },
         getAccountDetail() {

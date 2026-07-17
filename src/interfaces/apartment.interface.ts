@@ -1,19 +1,28 @@
-import type { Incident } from './incident.interface';
-import type { Contract } from './contract.interface';
-import type { Resident } from './resident.interface';
+import type { Incident } from "./incident.interface";
+import type { Contract } from "./contract.interface";
+import type { Resident } from "./resident.interface";
 
 export interface Apartment {
-    apartmentId: string,
-    floor: number,
-    roomNumber: string,
-    area: number,
-    status: number,
-    pictureUrl: string,
-    rentPrice: number,
-    buyPrice: number,
-    residents?: Resident[],
-    contracts?: Contract[],
-    incidents?: Incident[]
+    apartmentId: string;
+    floor: number;
+    roomNumber: string;
+    area: number;
+    status: number;
+    pictureUrl: string;
+    rentPrice: number;
+    buyPrice: number;
+    residents?: {
+        $id: number;
+        $values: Resident[];
+    };
+    contracts?: {
+        $id: number;
+        $values: Contract[];
+    };
+    incidents?: {
+        $id: number;
+        $values: Incident[];
+    };
 }
 
 export const apartmentDefaultValue: Apartment = {
@@ -25,4 +34,4 @@ export const apartmentDefaultValue: Apartment = {
     rentPrice: 0,
     roomNumber: "",
     status: 0,
-}
+};

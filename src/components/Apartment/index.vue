@@ -47,7 +47,10 @@
                             />
                         </template>
                         <template #actions>
-                            <setting-outlined key="setting" @click="handleOpenDrawer(aprt)" />
+                            <setting-outlined
+                                key="setting"
+                                @click="handleOpenDrawer(aprt)"
+                            />
                             <edit-outlined
                                 key="edit"
                                 @click="handleOpenModal(true, aprt)"
@@ -67,9 +70,14 @@
             v-model:open="modalOpen"
             v-model:dataDetail="apartment"
             :is-edit="isEdit"
-            @reload="getListApartments"
+            @reload="getListApartments(filter)"
         />
-        <ApartmentDrawer v-model:open="drawerOpen" v-model:dataDetail="apartment"/>
+        <ApartmentDrawer
+            :apartment="apartment"
+            v-model:open="drawerOpen"
+            v-model:dataDetail="apartment"
+            @close="handleCloseDrawer"
+        />
     </div>
 </template>
 
@@ -89,18 +97,7 @@ import ApartmentModal from "./ApartmentModal.vue";
 import api from "../../middleware/axios.interceptor.ts";
 import { message, Modal } from "ant-design-vue";
 import ApartmentDrawer from "./ApartmentDrawer/index.vue";
-
-interface Condition {
-    key: string;
-    value: string;
-}
-interface Filter {
-    page: number;
-    limit: number;
-    sortName: string;
-    sortMethod: string;
-    conditions: Condition[];
-}
+import type { Filter } from "../../interfaces/base.interface.ts";
 
 const apartments = ref<Apartment[]>([]);
 const filter = reactive<Filter>({
@@ -126,8 +123,15 @@ const handleOpenModal = (edit: boolean, data?: Apartment) => {
 
 const handleOpenDrawer = (data: Apartment) => {
     drawerOpen.value = true;
-    apartment.value = data;
-}
+    setTimeout(() => {
+        apartment.value = data;
+    }, 500);
+};
+
+const handleCloseDrawer = () => {
+    drawerOpen.value = false;
+    apartment.value = { ...apartmentDefaultValue };
+};
 
 const handleDelete = (data: Apartment) => {
     Modal.confirm({
@@ -163,7 +167,7 @@ const handleDelete = (data: Apartment) => {
 const getListApartments = (data: any) => {
     api.post(`/Apartments/filter`, data)
         .then((res) => {
-            apartments.value = res.data;
+            apartments.value = res.data.results.$values;
         })
         .catch((err) => {
             console.log(err);

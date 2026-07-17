@@ -97,7 +97,9 @@
         content
     </div>
 </template>
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+
+</script>
 <style scoped>
 .site-layout .site-layout-background {
     background: #fff;

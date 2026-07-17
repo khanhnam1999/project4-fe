@@ -56,16 +56,16 @@ const items = reactive<MenuItem[]>([
     {
         key: 4,
         icon: () => h(MailOutlined),
-        label: "Navigation One",
-        title: "Navigation One",
-        path: "/abc",
+        label: "Resident",
+        title: "Resident",
+        path: "/resident",
     },
     {
         key: 5,
         icon: () => h(AppstoreOutlined),
-        label: "Navigation Two",
-        title: "Navigation Two",
-        path: "/def",
+        label: "Incident",
+        title: "Incident",
+        path: "/incident",
     },
 ]);
 

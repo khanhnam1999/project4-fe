@@ -9,5 +9,5 @@ export interface Booking {
     serviceId: string,
     service?: Service,
     bookingDate: Dayjs,
-    status: string,
+    status: number,
 }

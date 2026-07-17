@@ -29,12 +29,10 @@ api.interceptors.response.use(
             // Ví dụ: chuyển hướng sang trang login
             // accountStore.loginErrorActions();
             message.error("Lỗi đăng nhập");
-        } else {
-            message.error("Lỗi hệ thống");
         }
-        message.loading("Đang chuyển về trang đăng nhập", 20, () => {
-            window.location.href = "/login";
-        });
+        // message.loading("Đang chuyển về trang đăng nhập", 20, () => {
+        //     window.location.href = "/login";
+        // });
         return Promise.reject(error);
     },
 );
