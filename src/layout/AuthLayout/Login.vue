@@ -83,7 +83,10 @@ const onFinish = async () => {
         })
         .then((res) => {
             // console.log(res.data);
-            if(res.data.role !== 0) return;
+            if(res.data.role !== 1) {
+                message.error("Tài khoản này không thuộc tài khoản quản lý");
+                return;
+            }
             accountStore.saveAccount(res.data);
             router.push("/");
         })

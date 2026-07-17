@@ -25,52 +25,6 @@
                 </div>
                 <div v-show="contract.type === 1">
                     <a-typography-title :level="4">
-                        Trả góp
-                    </a-typography-title>
-                    <a-form-item>
-                        <a-typography-text>
-                            Số tiền gốc: {{ apartment.buyPrice }} VND
-                        </a-typography-text>
-                    </a-form-item>
-                    <a-form-item label="Chọn số tiền trả trước">
-                        <a-select
-                            v-model:value="installmentPercent"
-                            placeholder="Chọn số tiền trả trước"
-                        >
-                            <a-select-option :value="20">
-                                20%
-                            </a-select-option>
-                            <a-select-option :value="30">
-                                30%
-                            </a-select-option>
-                            <a-select-option :value="40">
-                                40%
-                            </a-select-option>
-                        </a-select>
-                    </a-form-item>
-                    <a-form-item>
-                        <a-typography-text>
-                            Số tiền cần thanh toán trước:
-                            {{ initialPayment }} VND
-                        </a-typography-text>
-                    </a-form-item>
-                    <a-form-item label="Chọn số tháng trả góp">
-                        <a-select
-                            :disabled="!installmentPercent"
-                            placeholder="Chọn số tiền trả trước"
-                            v-model:value="installmentMonnth"
-                            :options="installmentMonnthList"
-                        />
-                    </a-form-item>
-                    <a-form-item>
-                        <a-typography-text>
-                            Số tiền cần thanh toán theo tháng:
-                            {{ installmentPerMonth }} VND
-                        </a-typography-text>
-                    </a-form-item>
-                </div>
-                <div v-show="contract.type === 2">
-                    <a-typography-title :level="4">
                         Trả theo giá thuê
                     </a-typography-title>
                     <a-typography-text>
@@ -88,14 +42,13 @@
     </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive } from "vue";
 import api from "../../../middleware/axios.interceptor.ts";
 import { message } from "ant-design-vue";
 
 import {
     contractDefault,
     contractTypeEnum,
-    installmentMonnthList,
     type Contract,
 } from "../../../interfaces/contract.interface.ts";
 
@@ -111,13 +64,6 @@ const emit = defineEmits<{
 
 const loading = ref<boolean>(false);
 const contract = reactive<Contract>({ ...contractDefault });
-const installmentPercent = ref<number>();
-const initialPayment = computed(() => {
-    if (installmentPercent.value) {
-        return (props.apartment.buyPrice * installmentPercent.value) / 100;
-    }
-    return 0;
-});
 
 const handleCreateContract = () => {
     loading.value = true;
@@ -137,19 +83,6 @@ const handleCreateContract = () => {
             loading.value = false;
         });
 };
-
-const installmentMonnth = ref<number>();
-const installmentPerMonth = computed(() => {
-    // Lãi suất mua nhà 0.75%/1 tháng
-    const monthInterestRate = 0.75 / 100;
-    if (installmentMonnth.value) {
-        const loanAmount = props.apartment.buyPrice - initialPayment.value;
-        const a = Math.pow(1 + monthInterestRate, installmentMonnth.value);
-
-        return (loanAmount * monthInterestRate * a) / (a - 1);
-    }
-    return 0;
-});
 </script>
 <style>
 .radioStyle {
