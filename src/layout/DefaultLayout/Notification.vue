@@ -4,7 +4,7 @@
         :arrow="{ pointAtCenter: true }"
         placement="bottomRight"
     >
-        <a-badge count="1">
+        <a-badge :count="totalCounts">
             <a-avatar size="large">
                 <BellOutlined
                     style="font-size: 30px; transform: translateY(4px)"
@@ -36,6 +36,7 @@ const { start } = signalRService;
 start();
 
 const notifications = ref<Notification[]>([]);
+const totalCounts = ref<number>(0);
 const getListNotifications = () => {
     api.get("/Notifications")
         .then(res => {

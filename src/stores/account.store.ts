@@ -14,26 +14,19 @@ export const useAccountStore = defineStore("account", {
     getters: {},
     actions: {
         saveAccount(data: Account) {
-            if(!data) this.loginErrorActions("Lỗi data trả về");
-            const listKeys: (keyof Account)[] = Object.keys(this.account);
+            if (!data) this.loginErrorActions("Lỗi data trả về");
 
-            listKeys.forEach((key: keyof Account) => {
-                if(data[key]) {
-                    this.account[key] = data[key];
-                }
-            });
-            
             CookieService.set("token", data.token || "");
             CookieService.set("accountId", data.accountId, 7);
         },
         getAccountDetail() {
             const id = CookieService.get("accountId");
-            if(!id) router.push("/login");
+            if (!id) router.push("/login");
             api.get(`/Accounts/${id}`)
-                .then(res => {
+                .then((res) => {
                     this.saveAccount(res.data);
                 })
-                .catch(err => this.loginErrorActions(err));
+                .catch((err) => this.loginErrorActions(err));
         },
         loginErrorActions(err: any = "Lỗi đăng nhập") {
             message.error(err);

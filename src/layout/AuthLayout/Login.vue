@@ -83,6 +83,7 @@ const onFinish = async () => {
         })
         .then((res) => {
             // console.log(res.data);
+            if(res.data.role !== 0) return;
             accountStore.saveAccount(res.data);
             router.push("/");
         })
