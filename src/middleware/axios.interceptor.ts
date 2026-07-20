@@ -1,6 +1,5 @@
 import axios from "axios";
 import { CookieService } from "../services/cookie.service";
-import { message } from "ant-design-vue";
 
 const api = axios.create({
     baseURL: "https://localhost:44312/api",
@@ -25,14 +24,21 @@ api.interceptors.response.use(
         return response;
     },
     (error) => {
-        if (error.response && error.response.status === 401) {
-            // Ví dụ: chuyển hướng sang trang login
-            // accountStore.loginErrorActions();
-            message.error("Lỗi đăng nhập");
+        if (error.response && (error.response.status === 401)) {
+            const { status } = error.response;
+            switch (status) {
+                case 401:
+                case 403:
+                    window.location.href = "/403";
+                    break;
+            
+                default:
+                    // window.location.href = "/500";
+                    break;
+            }
+        } else {
+            // window.location.href = "/500";
         }
-        // message.loading("Đang chuyển về trang đăng nhập", 20, () => {
-        //     window.location.href = "/login";
-        // });
         return Promise.reject(error);
     },
 );

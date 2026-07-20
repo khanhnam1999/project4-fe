@@ -34,61 +34,22 @@
                                     <div v-else>Khác</div>
                                 </div>
                             </template>
-                            <template v-else-if="column.key === 'description'">
-                                <a-typography-text v-if="record.status == 2">
-                                    {{ record.resolvedDescription }}
-                                </a-typography-text>
-                                <a-typography-text v-else-if="record.status == 3">
-                                    {{ record.closedDescription }}
-                                </a-typography-text>
-                                <a-typography-text v-else-if="record.status == 5">
-                                    {{ record.cancelDescription }}
-                                </a-typography-text>
-                                <a-typography-text v-else>{{ text }}</a-typography-text>
-                            </template>
                             <template v-else-if="column.key === 'action'">
                                 <a-space direction="vertical">
+                                    
                                     <a-button
-                                        v-if="activeKey === 4"
                                         type="primary"
                                         block
                                         @click="handleSubmitIncident(record)"
                                     >
                                         {{ submitBtnText }}
                                     </a-button>
-                                    <a-popconfirm
-                                        v-else
-                                        @confirm="handleSubmitIncident(record)"
-                                        :ok-text="submitBtnText"
-                                        cancel-text="Đóng"
+                                    <a-button
+                                        block
+                                        @click="handleSubmitIncident(record, true)"
                                     >
-                                        <template #icon></template>
-                                        <template #title>
-                                            <a-form layout="vertical">
-                                                <a-form-item label="Nhập lí do">
-                                                    <a-input v-model:value="statusDesciption" />
-                                                </a-form-item>
-                                            </a-form>
-                                        </template>
-                                        <a-button type="primary" block>
-                                            {{ submitBtnText }}
-                                        </a-button>
-                                    </a-popconfirm>
-                                    <a-popconfirm 
-                                        @confirm="handleSubmitIncident(record, true)"
-                                        ok-text="Hủy"
-                                        cancel-text="Đóng"
-                                    >
-                                        <template #icon></template>
-                                        <template #title>
-                                            <a-form layout="vertical">
-                                                <a-form-item label="Nhập lí do">
-                                                    <a-input v-model:value="statusDesciption" />
-                                                </a-form-item>
-                                            </a-form>
-                                        </template>
-                                        <a-button block>Hủy</a-button>
-                                    </a-popconfirm>
+                                        Hủy
+                                    </a-button>
                                 </a-space>
                             </template>
                         </template>
@@ -116,8 +77,6 @@
 </template>
 <script setup lang="ts">
 import { computed, reactive, ref, watchPostEffect } from "vue";
-import { QuestionCircleOutlined } from '@ant-design/icons-vue';
-
 import {
     incidentStatus,
     type Incident,
@@ -230,7 +189,7 @@ watchPostEffect(() => {
     getListIncidents(filter);
 });
 
-const statusDesciption = ref<string>();
+const statusDescription = ref<string>("");
 const handleSubmitIncident = (record: any, isCancel: boolean = false) => {
     const data = {
         reportedBy: record.reportedBy,
@@ -238,50 +197,36 @@ const handleSubmitIncident = (record: any, isCancel: boolean = false) => {
         incidentId: record.incidentId,
         description: record.description,
         status: 0,
-        cancelDescription: record.cancelDescription,
-        resolvedDescription: record.resolvedDescription,
-        closedDescription: record.closedDescription,
     };
-    if(isCancel) {
+    if (isCancel) {
         data.status = 5;
-        data.cancelDescription = statusDesciption.value;
     } else {
         switch (activeKey.value) {
             case 3: // Hoàn thành
             case 5: // Đã hủy
                 data.status = 4; // => Tái phát sinh
-                data.description = statusDesciption.value;
                 break;
             case 4:
                 data.status = 1; // Tái phát sinh => Tiếp nhận
                 break;
-            case 1:
-                data.status = 2;
-                data.resolvedDescription = statusDesciption.value;
-                break;
-            case 2:
-                data.status = 3;
-                data.closedDescription = statusDesciption.value;
-                break;
             default:
-                message.warning("Không tìm thấy chức năng");
-                return;
+                data.status = activeKey.value + 1; // Tất cả các key còn lại thì +1 để lên bước tiếp theo
+                break;
         }
     }
     loading.value = true;
     api.put(`/Incidents/${data.incidentId}`, data)
-        .then(res => {
+        .then((res) => {
             message.success("Thay đổi trạng thái thành công");
             activeKey.value = data.status;
-            filter.conditions = [{ key: "Status", incidentStatusValue: activeKey.value }];
         })
-        .catch(err => {
+        .catch((err) => {
             message.error("Thay đổi trạng thái không thành công");
         })
         .finally(() => {
             loading.value = false;
-            statusDesciption.value = "";
-        })
-}
+            statusDescription.value = "";
+        });
+};
 </script>
 <style lang=""></style>

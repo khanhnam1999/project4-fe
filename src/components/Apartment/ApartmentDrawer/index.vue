@@ -281,6 +281,7 @@ const contractResident = reactive<ContracResident>({
 const onCreateContractSuccess = (id: string) => {
     isFirstResident.value = true;
     contractResident.contractId = id;
+    getApartmentDetal(props.apartment.apartmentId);
 };
 
 const getApartmentDetal = (key: string) => {

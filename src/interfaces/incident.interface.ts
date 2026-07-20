@@ -9,6 +9,8 @@ export interface Incident {
     resident?: Resident;
     description: string;
     status: number;
+    resolvedDescription: string;
+    closedDescription: string;
     [key: string]: any;
 }
 

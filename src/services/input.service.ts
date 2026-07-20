@@ -7,4 +7,10 @@ export const InputService = {
             event.preventDefault(); // chặn ký tự không phải số
         }
     },
+
+    showNumber(a: any) {
+        if(!a) return a;
+        let b = a.toString();
+        return b.replace(/\B(?=(\d{3})+(?!\d))/g,',',);
+    }
 };

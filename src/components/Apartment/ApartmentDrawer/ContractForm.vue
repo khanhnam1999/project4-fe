@@ -20,7 +20,7 @@
                         Trả thẳng toàn bộ
                     </a-typography-title>
                     <a-typography-text>
-                        Số tiền cần thanh toán: {{ apartment.buyPrice }} VND
+                        Số tiền cần thanh toán: {{ InputService.showNumber(apartment.buyPrice) }} VND
                     </a-typography-text>
                 </div>
                 <div v-show="contract.type === 1">
@@ -29,7 +29,7 @@
                     </a-typography-title>
                     <a-typography-text>
                         Số tiền cần thanh toán:
-                        {{ apartment.rentPrice }} VND
+                        {{ InputService.showNumber(apartment.rentPrice) }} VND
                     </a-typography-text>
                 </div>
             </a-col>
@@ -53,6 +53,7 @@ import {
 } from "../../../interfaces/contract.interface.ts";
 
 import { type Apartment } from "../../../interfaces/apartment.interface.ts";
+import { InputService } from "../../../services/input.service.ts";
 
 const props = defineProps<{
     apartment: Apartment;

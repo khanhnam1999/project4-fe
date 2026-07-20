@@ -7,7 +7,7 @@
                 top: 0;
                 z-index: 100;
             "
-            title="Danh sách dịch vụ"
+            title="Danh sách căn hộ"
         >
             <template #extra>
                 <a-input-search
@@ -57,10 +57,33 @@
                             />
                             <DeleteOutlined @click="handleDelete(aprt)" />
                         </template>
-                        <a-card-meta
-                            :title="`Căn hộ ${aprt.roomNumber}`"
-                            description="This is the description"
-                        >
+                        <a-card-meta :title="`Căn hộ ${aprt.roomNumber}`">
+                            <template #description>
+                                <a-alert
+                                    v-if="aprt.status === 0"    
+                                    message="Còn trống"
+                                    type="info"
+                                    show-icon
+                                />
+                                <a-alert
+                                    v-else-if="aprt.status === 2"
+                                    message="Đang có người ở"
+                                    type="success"
+                                    show-icon
+                                />
+                                <a-alert
+                                    v-else-if="aprt.status === 1"
+                                    message="Đang đợi thanh toán"
+                                    type="warning"
+                                    show-icon
+                                />
+                                <a-alert
+                                    v-else-if="aprt.status === 3"
+                                    message="Đang bảo trì"
+                                    type="error"
+                                    show-icon
+                                />
+                            </template>
                         </a-card-meta>
                     </a-card>
                 </a-col>

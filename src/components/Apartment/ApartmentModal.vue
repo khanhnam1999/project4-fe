@@ -15,7 +15,7 @@
                         <a-input-number
                             style="width: 100%"
                             v-model:value="dataDetail.floor"
-                            :formatter="(a: any) => a.replace(/\B(?=(\d{3})+(?!\d))/g,',',)"
+                            :formatter="(a: any) => InputService.showNumber(a)"
                             :parser="(a: any) => a.replace(/,/g, '')"
                         />
                     </a-form-item>
@@ -32,7 +32,7 @@
                         <a-input-number
                             style="width: 100%"
                             v-model:value="dataDetail.area"
-                            :formatter="(a: any) => a.replace(/\B(?=(\d{3})+(?!\d))/g,',',)"
+                            :formatter="(a: any) => InputService.showNumber(a)"
                             :parser="(a: any) => a.replace(/,/g, '')"
                         >
                             <template #prefix> m&sup2; </template>
@@ -45,8 +45,9 @@
                             v-model:value="dataDetail.status"
                             :options="[
                                 { value: 0, label: 'Còn trống' },
-                                { value: 1, label: 'Đang có người ở' },
-                                { value: 2, label: 'Đang bảo trì' },
+                                { value: 1, label: 'Đang đợi thanh toán' },
+                                { value: 2, label: 'Đang có người ở' },
+                                { value: 3, label: 'Đang bảo trì' },
                             ]"
                         />
                     </a-form-item>
@@ -58,7 +59,7 @@
                         <a-input-number
                             style="width: 100%"
                             v-model:value="dataDetail.rentPrice"
-                            :formatter="(a: any) => a.replace(/\B(?=(\d{3})+(?!\d))/g,',',)"
+                            :formatter="(a: any) => InputService.showNumber(a)"
                             :parser="(a: any) => a.replace(/,/g, '')"
                             prefix="VNĐ"
                         />
@@ -69,14 +70,14 @@
                         <a-input-number
                             style="width: 100%"
                             v-model:value="dataDetail.buyPrice"
-                            :formatter="(a: any) => a.replace(/\B(?=(\d{3})+(?!\d))/g,',',)"
+                            :formatter="(a: any) => InputService.showNumber(a)"
                             :parser="(a: any) => a.replace(/,/g, '')"
                             prefix="VNĐ"
                         />
                     </a-form-item>
                 </a-col>
             </a-row>
-            <a-row :gutter="16">
+            <!-- <a-row :gutter="16">
                 <a-col :span="24">
                     <a-form-item label="Ảnh">
                         <a-upload
@@ -99,7 +100,7 @@
                         </a-upload>
                     </a-form-item>
                 </a-col>
-            </a-row>
+            </a-row> -->
         </a-form>
     </a-modal>
 </template>
@@ -116,6 +117,7 @@ import {
 } from "ant-design-vue";
 import { PlusOutlined, LoadingOutlined } from "@ant-design/icons-vue";
 import api from "../../middleware/axios.interceptor";
+import { InputService } from "../../services/input.service";
 const props = defineProps({
     isEdit: {
         type: Boolean,
