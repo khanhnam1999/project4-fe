@@ -35,21 +35,29 @@
                 :pagination="false"
             >
                 <template #bodyCell="{ column, text, record }">
-                    <template v-if="column.key === 'paymentMethod'">
+                    <template v-if="column.key === 'paymentDeadline'">
                         <a-space direction="vertical">
-                            <a-alert
-                                :message="getPaymentStatusInfo(text)?.label"
-                                :type="getPaymentStatusInfo(text)?.type"
-                                show-icon
-                            />
-                            <a-alert
-                                v-if="
-                                    record.paymentMethod !== null &&
-                                    record.paymentMethod !== undefined
-                                "
-                                :message="getPaymentMethodInfo(text)?.label"
-                                type="success"
-                                show-icon
+                            <a-typography-text>
+                                {{ dayjs(text).format("DD/MM/YYYY") }}
+                            </a-typography-text>
+                            <a-typography-text>
+                                {{ dayjs(text).format("HH:mm") }}
+                            </a-typography-text>
+                        </a-space>
+                    </template>
+                    <template v-else-if="column.key === 'paymentStatus'">
+                        <a-space direction="vertical">
+                            <a-tag :color="getPaymentStatusInfo(text)?.type">
+                                {{ getPaymentStatusInfo(text)?.label }}
+                            </a-tag>
+                            <a-tag v-if="text === 3" color="success">
+                                {{ getPaymentMethodInfo(text)?.label }}
+                            </a-tag>
+                            <a-switch
+                                v-if="[1, 2, 3].includes(text)"
+                                :checked="text === 3"
+                                @change="handleChangePaymentStatus(record)"
+                                :loading="record.statusLoading"
                             />
                         </a-space>
                     </template>
@@ -73,6 +81,7 @@
                 </template>
             </a-table>
             <div
+                v-if="totalRecords > filter.limit"
                 style="
                     display: flex;
                     align-items: center;
@@ -101,6 +110,7 @@ import {
     paymentStatusData,
     type Payment,
 } from "../../interfaces/payment.interface";
+import dayjs from "dayjs";
 
 const columns = [
     {
@@ -159,6 +169,32 @@ const getPaymentMethodInfo = (method: number) => {
     return paymentMethodData.find((a) => a.value === method);
 };
 
+const handleChangePaymentStatus = (record: Payment) => {
+    const data: Payment = {
+        paymentId: record.paymentId,
+        residentId: record.residentId,
+        title: record.title,
+        amount: record.amount,
+        paymentDeadline: record.paymentDeadline,
+        description: record.description,
+        paymentStatus: record.paymentStatus,
+        paymentType: record.paymentType,
+        status: 3,
+    };
+    record.statusLoading = true;
+    api.put(`/Payments/${data.paymentId}`, data)
+        .then((res) => {
+            record.status = data.status;
+            message.success("Thay đổi trạng thái thành công");
+        })
+        .catch((err) => {
+            message.error("Thay đổi trạng thái thất bại");
+        })
+        .finally(() => {
+            record.statusLoading = false;
+        });
+};
+
 const getListPayments = (filterSearch: Filter) => {
     loading.value = true;
     api.post("/Payments/filter", filterSearch)
@@ -166,15 +202,24 @@ const getListPayments = (filterSearch: Filter) => {
             if (!res.data.results || !res.data.results.$values) return;
             const { results, totalRecords } = res.data;
             payments.value = results.$values.map((item: Payment) => {
-                const { account } = item.resident;
-                return {
-                    ...item,
-                    fullName: account.fullName,
-                    phoneNumber: account.phoneNumber,
-                    gender: account.gender,
-                };
+                if(!item.resident || !item.resident.account) {
+                    return item;
+                } else {
+                    const { account } = item.resident;
+                    return {
+                        ...item,
+                        statusLoading: false,
+                        fullName: account.fullName,
+                        phoneNumber: account.phoneNumber,
+                        gender: account.gender,
+                    };
+                }
             });
+            console.log(totalRecords);
+            
             totalRecords.value = totalRecords;
+            console.log(payments.value);
+            
         })
         .catch((err) => {
             console.log(err);

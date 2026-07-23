@@ -13,6 +13,10 @@ export interface Payment {
     paymentMethod?: number;
     paymentStatus: number;
     description: string;
+    paymentType: string;
+    transactionId?: string;
+    referenceCode?: string
+    [key: string]: any;
 }
 
 export const paymentDefault: Payment = {
@@ -23,6 +27,7 @@ export const paymentDefault: Payment = {
     paymentDeadline: dayjs().hour(23).minute(59).second(59),
     description: "",
     paymentStatus: 0,
+    paymentType: ""
 };
 
 export const paymentMethodData = [
@@ -34,7 +39,9 @@ export const paymentMethodData = [
 
 export const paymentStatusData = [
     { value: 0, label: "Chưa thanh toán", type: "info" },
-    { value: 1, label: "Đã thanh toán", type: "success" },
-    { value: 2, label: "Thanh toán muộn", type: "warning" },
-    { value: 3, label: "Đã quá hạn", type: "error" },
-]
+    { value: 1, label: "Đã chuyển khoản", type: "warning" },
+    { value: 2, label: "Đã trả tiền mặt", type: "warning" },
+    { value: 3, label: "Đã thanh toán", type: "success" },
+    { value: 4, label: "Quá hạn", type: "error" },
+    { value: 3, label: "Đã hủy", type: "error" },
+];
