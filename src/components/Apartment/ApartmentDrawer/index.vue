@@ -34,16 +34,19 @@
             <template #renderItem="{ item }">
                 <a-list-item>
                     <template #actions>
-                        <a-popconfirm
-                            v-if="item.residentId"
-                            :okButtonProps="{ danger: true }"
-                            title="Bạn có muốn xóa cư dân này?"
-                            ok-text="Xóa"
-                            cancel-text="Hủy"
-                            @confirm="deleteResidentFromContract"
-                        >
-                            <a-button type="link" danger>Xóa</a-button>
-                        </a-popconfirm>
+                        <div v-if="item.residentId">
+                            <a-popconfirm
+                                v-if="(item.residentType === 0 && listResidentsInApartment.length === 1)
+                                || (item.residentType !== 0)"
+                                :okButtonProps="{ danger: true }"
+                                title="Bạn có muốn xóa cư dân này?"
+                                ok-text="Xóa"
+                                cancel-text="Hủy"
+                                @confirm="deleteResidentFromContract"
+                            >
+                                <a-button type="link" danger>Xóa</a-button>
+                            </a-popconfirm>
+                        </div>
                         <template v-else>
                             <a-space direction="vertical">
                                 <a-button
@@ -99,7 +102,7 @@
                                 </a-select>
                                 <a-select
                                     show-search
-                                    placeholder="Select a person"
+                                    placeholder="Chọn cư dân"
                                     style="width: 200px"
                                     :filter-option="false"
                                     allowClear
@@ -176,6 +179,8 @@ import {
 import type { Filter } from "../../../interfaces/base.interface.ts";
 import { debounce } from "lodash-es";
 import type { Contract } from "../../../interfaces/contract.interface.ts";
+import { paymentDefault, type Payment } from "../../../interfaces/payment.interface.ts";
+import dayjs from "dayjs";
 
 const props = defineProps<{
     open: boolean;
@@ -232,7 +237,10 @@ const handleSelectResident = (value: string) => {
     const result = listResidents.value.find(
         (item: Resident) => item.residentId === value,
     );
-    if (result) selectedResident.value = result;
+    if (result) {
+        selectedResident.value = result;
+        payment.residentId = result.residentId;
+    } 
 };
 const submitAddResident = async () => {
     contractResident.residentId = selectedResident.value.residentId;
@@ -240,8 +248,14 @@ const submitAddResident = async () => {
         contractResident.residentType = 0;
     }
     loading.value = true;
-    api.post("/Contracts/addResidentToContract", contractResident)
-        .then((res) => {
+    Promise.all([
+        api.post("/Contracts/addResidentToContract", contractResident), 
+        api.post("/Payments", {
+            ...payment,
+            paymentId: undefined,
+        }), 
+    ])
+        .then(() => {
             message.success("Thêm cư dân thành công");
             listResidentsInApartment.value = [];
             getListResidentByContract(contractResident.contractId);
@@ -253,6 +267,7 @@ const submitAddResident = async () => {
         .finally(() => {
             loading.value = false;
         });
+    
 };
 const getListResidents = (filterSearch: Filter) => {
     // loading.value = true;
@@ -278,41 +293,60 @@ const loading = ref<boolean>(false);
 const contractResident = reactive<ContracResident>({
     ...contracResidentDefault,
 });
-const onCreateContractSuccess = (id: string) => {
+const payment = reactive<Payment>({...paymentDefault});
+const onCreateContractSuccess = async (data: Contract) => {
     isFirstResident.value = true;
-    contractResident.contractId = id;
-    getApartmentDetal(props.apartment.apartmentId);
+    contractResident.contractId = data.contractId;
+
+    await getApartmentDetal(props.apartment.apartmentId);
+
+    if(data.type === 0) { // trả thẳng
+        payment.amount = apartmentDetail.value.buyPrice;
+        payment.title = "Thanh toán tiền nhà";
+        payment.description = "Thanh toán tiền nhà sau khi ký hợp đồng";
+    } else { // trả tiền thuê
+        // tính số ngày còn lại tới cuối tháng
+        const dayLeft = dayjs().endOf("month").diff(dayjs(), "day") + 1;
+        // Lấy số ngày trong tháng hiện tại
+        const daysInMonth = dayjs().daysInMonth();
+        payment.amount = (apartmentDetail.value.rentPrice / daysInMonth) * dayLeft;
+        payment.title = "Thanh toán tiền nhà tháng đầu tiên";
+        payment.description = `Thanh toán tiền nhà sau ${dayLeft} ngày cho tới cuối tháng`;
+    } 
 };
 
 const getApartmentDetal = (key: string) => {
-    api.get(`/Apartments/${key}`)
-        .then((res: any) => {
-            apartmentDetail.value = res.data;
-            if (
-                apartmentDetail.value.contracts &&
-                apartmentDetail.value.contracts.$values &&
-                apartmentDetail.value.contracts.$values[0]
-            ) {
-                const contract: Contract =
-                    apartmentDetail.value.contracts.$values[0];
-
-                contractResident.contractId = contract.contractId;
+    return new Promise((resolve, reject) => {
+        api.get(`/Apartments/${key}`)
+            .then((res: any) => {
+                apartmentDetail.value = res.data;
                 if (
-                    contract.contractResidents &&
-                    contract.contractResidents.$values.length
+                    apartmentDetail.value.contracts &&
+                    apartmentDetail.value.contracts.$values &&
+                    apartmentDetail.value.contracts.$values[0]
                 ) {
-                    isFirstResident.value = false;
-                    getListResidentByContract(contract.contractId);
-                } else {
-                    isFirstResident.value = true;
+                    const contract: Contract =
+                        apartmentDetail.value.contracts.$values[0];
+    
+                    contractResident.contractId = contract.contractId;
+                    if (
+                        contract.contractResidents &&
+                        contract.contractResidents.$values.length
+                    ) {
+                        isFirstResident.value = false;
+                        getListResidentByContract(contract.contractId);
+                    } else {
+                        isFirstResident.value = true;
+                    }
                 }
-            }
-        })
-        .catch((err) => {
-            console.log(err);
-            message.error("Lây thông tin căn hộ thất bại");
-        })
-        .finally(() => {});
+                resolve(res);
+            })
+            .catch((err) => {
+                console.log(err);
+                message.error("Lây thông tin căn hộ thất bại");
+                reject(err);
+            })
+    })
 };
 
 const listResidentsInApartment = ref<Resident[]>([]);
@@ -342,6 +376,7 @@ const deleteResidentFromContract = () => {
     })
         .then(res => {
             message.success("Xóa thành công");
+            listResidentsInApartment.value = [];
             getListResidentByContract(contractResident.contractId);
         })
         .catch(err => {

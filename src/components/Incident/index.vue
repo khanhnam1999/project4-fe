@@ -59,6 +59,7 @@
                                     <a-popconfirm
                                         v-else
                                         @confirm="handleSubmitIncident(record)"
+                                        @cancel="handleCancelIncident"
                                         :ok-text="submitBtnText"
                                         cancel-text="Đóng"
                                     >
@@ -76,6 +77,7 @@
                                     </a-popconfirm>
                                     <a-popconfirm 
                                         @confirm="handleSubmitIncident(record, true)"
+                                        @cancel="handleCancelIncident"
                                         ok-text="Hủy"
                                         cancel-text="Đóng"
                                     >
@@ -231,6 +233,9 @@ watchPostEffect(() => {
 });
 
 const statusDesciption = ref<string>();
+const handleCancelIncident = () => {
+    statusDesciption.value = "";
+}
 const handleSubmitIncident = (record: any, isCancel: boolean = false) => {
     const data = {
         reportedBy: record.reportedBy,

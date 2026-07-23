@@ -9,167 +9,166 @@
             "
             title="Danh sách sự cố"
         >
-            <!-- <template #extra>
+            <template #extra>
+                <a-select
+                    v-model:value="selectedKey"
+                    allowClear
+                    style="width: 200px"
+                    placeholder="Chọn trạng thái"
+                >
+                    <a-select-option
+                        v-for="item in paymentMethodData"
+                        :key="item.value"
+                        :value="item.value"
+                    >
+                        {{ item.label }}
+                    </a-select-option>
+                </a-select>
                 <a-button type="primary"> Thêm mới cư dân </a-button>
-            </template> -->
+            </template>
         </a-page-header>
         <div style="padding: 14px">
-            <a-tabs v-model:activeKey="activeKey" @change="handleChangeTab">
-                <a-tab-pane
-                    v-for="item in incidentStatus"
-                    :key="item.value"
-                    :tab="item.label"
-                >
-                    <a-table
-                        :dataSource="incidents"
-                        :columns="columns"
-                        :loading="loading"
-                        :pagination="false"
-                    >
-                        <template #bodyCell="{ column, text, record }">
-                            <template v-if="column.key === 'gender'">
-                                <div>
-                                    <div v-if="text === 0">Nam</div>
-                                    <div v-else-if="text === 1">Nữ</div>
-                                    <div v-else>Khác</div>
-                                </div>
-                            </template>
-                            <template v-else-if="column.key === 'action'">
-                                <a-space direction="vertical">
-                                    
-                                    <a-button
-                                        type="primary"
-                                        block
-                                        @click="handleSubmitIncident(record)"
-                                    >
-                                        {{ submitBtnText }}
-                                    </a-button>
-                                    <a-button
-                                        block
-                                        @click="handleSubmitIncident(record, true)"
-                                    >
-                                        Hủy
-                                    </a-button>
-                                </a-space>
-                            </template>
-                        </template>
-                    </a-table>
-                </a-tab-pane>
-                <div
-                    style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: flex-end;
-                        background-color: white;
-                        padding: 12px;
-                    "
-                >
-                    <a-pagination
-                        v-model:current="filter.page"
-                        v-model:pageSize="filter.limit"
-                        show-size-changer
-                        :total="totalRecords"
-                    />
-                </div>
-            </a-tabs>
+            <a-table
+                :dataSource="payments"
+                :columns="columns"
+                :loading="loading"
+                :pagination="false"
+            >
+                <template #bodyCell="{ column, text, record }">
+                    <template v-if="column.key === 'paymentMethod'">
+                        <a-space direction="vertical">
+                            <a-alert
+                                :message="getPaymentStatusInfo(text)?.label"
+                                :type="getPaymentStatusInfo(text)?.type"
+                                show-icon
+                            />
+                            <a-alert
+                                v-if="
+                                    record.paymentMethod !== null &&
+                                    record.paymentMethod !== undefined
+                                "
+                                :message="getPaymentMethodInfo(text)?.label"
+                                type="success"
+                                show-icon
+                            />
+                        </a-space>
+                    </template>
+                    <template v-else-if="column.key === 'action'">
+                        <a-space direction="vertical">
+                            <!-- <a-button
+                                type="primary"
+                                block
+                                @click="handleSubmit(record)"
+                            >
+                                {{ submitBtnText }}
+                            </a-button>
+                            <a-button
+                                block
+                                @click="handleSubmit(record, true)"
+                            >
+                                Hủy
+                            </a-button> -->
+                        </a-space>
+                    </template>
+                </template>
+            </a-table>
+            <div
+                style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    background-color: white;
+                    padding: 12px;
+                "
+            >
+                <a-pagination
+                    v-model:current="filter.page"
+                    v-model:pageSize="filter.limit"
+                    show-size-changer
+                    :total="totalRecords"
+                />
+            </div>
         </div>
     </div>
 </template>
 <script setup lang="ts">
-import { computed, reactive, ref, watchPostEffect } from "vue";
-import {
-    incidentStatus,
-    type Incident,
-} from "../../interfaces/incident.interface";
+import { reactive, ref, watchPostEffect } from "vue";
 import type { Filter } from "../../interfaces/base.interface";
 import api from "../../middleware/axios.interceptor";
 import { message } from "ant-design-vue";
+import {
+    paymentMethodData,
+    paymentStatusData,
+    type Payment,
+} from "../../interfaces/payment.interface";
 
 const columns = [
     {
-        title: "Họ và tên",
+        title: "Thông tin thanh toán",
+        dataIndex: "title",
+        key: "title",
+    },
+    {
+        title: "Cư dân thanh toán",
         dataIndex: "fullName",
         key: "fullName",
     },
     {
-        title: "Giới tính",
-        dataIndex: "gender",
-        key: "gender",
-    },
-    {
-        title: "Phòng",
-        dataIndex: "roomNumber",
-        key: "roomNumber",
-    },
-    {
-        title: "Số điện thoại",
-        dataIndex: "phoneNumber",
-        key: "phoneNumber",
-    },
-    {
-        title: "Thông tin sự cố",
+        title: "Mô tả",
         dataIndex: "description",
         key: "description",
     },
     {
+        title: "Ngày hết hạn",
+        dataIndex: "paymentDeadline",
+        key: "paymentDeadline",
+    },
+    {
+        title: "Trạng thái",
+        dataIndex: "paymentStatus",
+        key: "paymentStatus",
+    },
+    {
+        title: "Ngày thanh toán",
+        dataIndex: "paymentDate",
+        key: "paymentDate",
+    },
+    {
         title: "",
-        dataIndex: "incidentId",
+        dataIndex: "paymentId",
         key: "action",
     },
 ];
-const activeKey = ref<number>(0);
+const selectedKey = ref<number>();
 const loading = ref<boolean>(false);
-const incidents = ref<Incident[]>([]);
+const payments = ref<Payment[]>([]);
 const totalRecords = ref<number>(0);
 const filter = reactive<Filter>({
     page: 1,
     limit: 20,
-    conditions: [{ key: "Status", incidentStatusValue: activeKey.value }],
+    conditions: [],
     sortName: "ModifiedAt",
     sortMethod: "DESC",
 });
 
-const submitBtnText = computed(() => {
-    let text = "";
-    switch (activeKey.value) {
-        case 0:
-        case 4:
-            text = "Tiếp nhận";
-            break;
-        case 1:
-            text = "Khắc phục";
-            break;
-        case 2:
-            text = "Hoàn thành";
-            break;
-        case 3:
-        case 5:
-            text = "Tái phát sinh";
-            break;
-        default:
-            text = "";
-            break;
-    }
-    return text;
-});
-
-const handleChangeTab = (value: number) => {
-    filter.page = 1;
-    filter.limit = 20;
-    filter.conditions = [{ key: "Status", incidentStatusValue: value }];
+const getPaymentStatusInfo = (status: number) => {
+    return paymentStatusData.find((a) => a.value === status);
 };
 
-const getListIncidents = (filterSearch: Filter) => {
+const getPaymentMethodInfo = (method: number) => {
+    return paymentMethodData.find((a) => a.value === method);
+};
+
+const getListPayments = (filterSearch: Filter) => {
     loading.value = true;
-    api.post("/Incidents/filter", filterSearch)
+    api.post("/Payments/filter", filterSearch)
         .then((res) => {
             if (!res.data.results || !res.data.results.$values) return;
             const { results, totalRecords } = res.data;
-            incidents.value = results.$values.map((item: Incident) => {
+            payments.value = results.$values.map((item: Payment) => {
                 const { account } = item.resident;
                 return {
                     ...item,
-                    roomNumber: item.apartment.roomNumber,
                     fullName: account.fullName,
                     phoneNumber: account.phoneNumber,
                     gender: account.gender,
@@ -186,47 +185,13 @@ const getListIncidents = (filterSearch: Filter) => {
 };
 
 watchPostEffect(() => {
-    getListIncidents(filter);
-});
-
-const statusDescription = ref<string>("");
-const handleSubmitIncident = (record: any, isCancel: boolean = false) => {
-    const data = {
-        reportedBy: record.reportedBy,
-        apartmentId: record.apartmentId,
-        incidentId: record.incidentId,
-        description: record.description,
-        status: 0,
+    const filterOption = {
+        ...filter,
+        condition: [
+            { key: "PaymentMethod", paymentStatusValue: selectedKey.value },
+        ],
     };
-    if (isCancel) {
-        data.status = 5;
-    } else {
-        switch (activeKey.value) {
-            case 3: // Hoàn thành
-            case 5: // Đã hủy
-                data.status = 4; // => Tái phát sinh
-                break;
-            case 4:
-                data.status = 1; // Tái phát sinh => Tiếp nhận
-                break;
-            default:
-                data.status = activeKey.value + 1; // Tất cả các key còn lại thì +1 để lên bước tiếp theo
-                break;
-        }
-    }
-    loading.value = true;
-    api.put(`/Incidents/${data.incidentId}`, data)
-        .then((res) => {
-            message.success("Thay đổi trạng thái thành công");
-            activeKey.value = data.status;
-        })
-        .catch((err) => {
-            message.error("Thay đổi trạng thái không thành công");
-        })
-        .finally(() => {
-            loading.value = false;
-            statusDescription.value = "";
-        });
-};
+    getListPayments(selectedKey.value ? filterOption : filter);
+});
 </script>
 <style lang=""></style>

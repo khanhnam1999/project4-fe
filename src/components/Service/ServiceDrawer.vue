@@ -20,11 +20,16 @@
                     </div>
                 </template>
                 <template v-else-if="column.key === 'status'">
-                    <a-switch
-                        :checked="text === 1"
-                        @change="handleChangeStatus(record)"
-                        :loading="record.statusLoading"
-                    />
+                    <a-space direction="vertical" align="center">
+                        <a-tag v-if="text === 1" color="success">Đã sử dụng</a-tag>
+                        <a-tag v-else color="warning">Chưa sử dụng</a-tag>
+                        <a-switch
+                            :checked="text === 1"
+                            @change="handleChangeStatus(record)"
+                            :loading="record.statusLoading"
+                        />
+                    </a-space>
+
                 </template>
                 <template v-else-if="column.key === 'action'">
                     <a-popconfirm
@@ -40,6 +45,7 @@
             </template>
         </a-table>
         <div
+            v-if="totalRecords > filter.limit"
             style="
                 display: flex;
                 align-items: center;
@@ -173,8 +179,6 @@ const handleGetListBooking = () => {
                         statusLoading: false,
                     };
                 });
-
-                console.log(residents.value);
             }
         })
         .catch((err) => {

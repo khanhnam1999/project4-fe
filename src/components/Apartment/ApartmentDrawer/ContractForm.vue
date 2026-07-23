@@ -54,13 +54,14 @@ import {
 
 import { type Apartment } from "../../../interfaces/apartment.interface.ts";
 import { InputService } from "../../../services/input.service.ts";
+import { Payment } from "../../../interfaces/payment.interface.ts";
 
 const props = defineProps<{
     apartment: Apartment;
 }>();
 
 const emit = defineEmits<{
-    (e: "createContractSuccess", id: string): void;
+    (e: "createContractSuccess", data: Contract): void;
 }>();
 
 const loading = ref<boolean>(false);
@@ -75,7 +76,11 @@ const handleCreateContract = () => {
     })
         .then(res => {
             message.success("Tạo mới hợp đồng thành công");
-            emit("createContractSuccess", res.data);
+            emit("createContractSuccess", {
+                ...contract,
+                apartmentId: props.apartment.apartmentId,
+                contractId: res.data,
+            });
         })
         .catch(err => {
             message.error("Thêm mới hợp đồng thất bại");
