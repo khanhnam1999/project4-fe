@@ -2,6 +2,7 @@ import type { Dayjs } from "dayjs";
 import type { Apartment } from "./apartment.interface";
 import dayjs from "dayjs";
 import type { ContracResident } from "./contractResident.interface";
+import type { CollectionResponse } from "./base.interface";
 
 export interface Contract {
     contractId: string;
@@ -9,10 +10,7 @@ export interface Contract {
     apartment?: Apartment;
     startDate: Dayjs;
     endDate?: Dayjs;
-    contractResidents?: {
-        $id: number;
-        $values: ContracResident[];
-    };
+    contractResidents?: CollectionResponse<ContracResident>;
     type: number;
 }
 

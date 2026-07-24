@@ -13,6 +13,7 @@ import Service from "../components/Service/index.vue";
 import Resident from "../components/Resident/index.vue";
 import Incident from "../components/Incident/index.vue";
 import Payment from "../components/Payment/index.vue";
+import { CookieService } from "../services/cookie.service";
 
 const routes: Array<RouteRecordRaw> = [
     { path: "/403", name: "Page403", component: Page403, meta: { layout: "auth"} },
@@ -33,5 +34,14 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+router.beforeEach((to) => {
+  const isAuthenticated = Boolean(CookieService.get("token"));
+  const requiresAuthentication = to.meta.layout === "default";
+
+  if (requiresAuthentication && !isAuthenticated) {
+    return { name: "Login" };
+  }
+});
 
 export default router

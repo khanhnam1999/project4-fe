@@ -102,7 +102,7 @@
 </template>
 <script setup lang="ts">
 import { reactive, ref, watchPostEffect } from "vue";
-import type { Filter } from "../../interfaces/base.interface";
+import { getCollection, type Filter } from "../../interfaces/base.interface";
 import api from "../../middleware/axios.interceptor";
 import { message } from "ant-design-vue";
 import {
@@ -199,9 +199,8 @@ const getListPayments = (filterSearch: Filter) => {
     loading.value = true;
     api.post("/Payments/filter", filterSearch)
         .then((res) => {
-            if (!res.data.results || !res.data.results.$values) return;
             const { results, totalRecords } = res.data;
-            payments.value = results.$values.map((item: Payment) => {
+            payments.value = getCollection<Payment>(results).map((item) => {
                 if(!item.resident || !item.resident.account) {
                     return item;
                 } else {

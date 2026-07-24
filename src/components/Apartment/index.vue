@@ -120,7 +120,7 @@ import ApartmentModal from "./ApartmentModal.vue";
 import api from "../../middleware/axios.interceptor.ts";
 import { message, Modal } from "ant-design-vue";
 import ApartmentDrawer from "./ApartmentDrawer/index.vue";
-import type { Filter } from "../../interfaces/base.interface.ts";
+import { getCollection, type Filter } from "../../interfaces/base.interface.ts";
 
 const apartments = ref<Apartment[]>([]);
 const filter = reactive<Filter>({
@@ -190,7 +190,7 @@ const handleDelete = (data: Apartment) => {
 const getListApartments = (data: any) => {
     api.post(`/Apartments/filter`, data)
         .then((res) => {
-            apartments.value = res.data.results.$values;
+            apartments.value = getCollection<Apartment>(res.data.results);
         })
         .catch((err) => {
             console.log(err);

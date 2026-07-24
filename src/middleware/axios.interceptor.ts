@@ -2,7 +2,7 @@ import axios from "axios";
 import { CookieService } from "../services/cookie.service";
 
 const api = axios.create({
-    baseURL: "https://localhost:44312/api",
+    baseURL: "http://localhost:5207/api",
 });
 
 // Request interceptor
@@ -24,21 +24,18 @@ api.interceptors.response.use(
         return response;
     },
     (error) => {
-        if (error.response && (error.response.status === 401)) {
-            const { status } = error.response;
-            switch (status) {
-                case 401:
-                case 403:
-                    window.location.href = "/403";
-                    break;
-            
-                default:
-                    // window.location.href = "/500";
-                    break;
+        const status = error.response?.status;
+
+        if (status === 401) {
+            CookieService.remove("token");
+            CookieService.remove("accountId");
+            if (window.location.pathname !== "/login") {
+                window.location.href = "/login";
             }
-        } else {
-            // window.location.href = "/500";
+        } else if (status === 403 && window.location.pathname !== "/403") {
+            window.location.href = "/403";
         }
+
         return Promise.reject(error);
     },
 );

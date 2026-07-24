@@ -12,10 +12,21 @@ export interface Filter {
     conditions: Condition[];
 }
 
+export type CollectionResponse<T> =
+    | T[]
+    | {
+          $values?: T[];
+          $id?: number | string;
+      }
+    | null
+    | undefined;
+
+export const getCollection = <T>(value: CollectionResponse<T>): T[] => {
+    if (Array.isArray(value)) return value;
+    return value?.$values ?? [];
+};
+
 export interface FilterResult<T> {
-    results: {
-        $values: T[];
-        $id: number;
-    };
+    results: CollectionResponse<T>;
     totalRecords: number;
 }
