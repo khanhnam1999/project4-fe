@@ -43,7 +43,7 @@
                         <template #cover>
                             <img
                                 alt="example"
-                                src="https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png"
+                                src="https://th.bing.com/th/id/R.3326762ac0f65f028411bc4dd96c116c?rik=eZqFvw%2blI%2bpbFA&pid=ImgRaw&r=0"
                             />
                         </template>
                         <template #actions>
