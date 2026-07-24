@@ -1,6 +1,7 @@
 import type { Incident } from "./incident.interface";
 import type { Contract } from "./contract.interface";
 import type { Resident } from "./resident.interface";
+import type { CollectionResponse } from "./base.interface";
 
 export interface Apartment {
     apartmentId: string;
@@ -11,18 +12,9 @@ export interface Apartment {
     pictureUrl: string;
     rentPrice: number;
     buyPrice: number;
-    residents?: {
-        $id: number;
-        $values: Resident[];
-    };
-    contracts?: {
-        $id: number;
-        $values: Contract[];
-    };
-    incidents?: {
-        $id: number;
-        $values: Incident[];
-    };
+    residents?: CollectionResponse<Resident>;
+    contracts?: CollectionResponse<Contract>;
+    incidents?: CollectionResponse<Incident>;
 }
 
 export const apartmentDefaultValue: Apartment = {

@@ -71,7 +71,7 @@ import {
     type Resident,
 } from "../../interfaces/resident.interface";
 import { type Service } from "../../interfaces/service.interface";
-import type { Filter, FilterResult } from "../../interfaces/base.interface";
+import { getCollection, type Filter, type FilterResult } from "../../interfaces/base.interface";
 import api from "../../middleware/axios.interceptor";
 import { message } from "ant-design-vue";
 import type { Booking } from "../../interfaces/booking.interface";
@@ -171,15 +171,13 @@ const handleGetListBooking = () => {
 
             totalRecords.value = data.totalRecords;
 
-            if (data.results.$values) {
-                residents.value = data.results.$values.map((item) => {
-                    return {
-                        ...item,
-                        ...convertResident(item.resident || residentDefault),
-                        statusLoading: false,
-                    };
-                });
-            }
+            residents.value = getCollection<Booking>(data.results).map((item) => {
+                return {
+                    ...item,
+                    ...convertResident(item.resident || residentDefault),
+                    statusLoading: false,
+                };
+            });
         })
         .catch((err) => {
             console.log(err);

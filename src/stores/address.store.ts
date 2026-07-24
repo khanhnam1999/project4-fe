@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import api from "../middleware/axios.interceptor";
+import { getCollection } from "../interfaces/base.interface";
 
 interface Province {
     provinceId: string;
@@ -33,7 +34,7 @@ export const useAddressStore = defineStore("address", {
                 conditions: [{ key: "ProvinceId", guidValue: selectedProvinceId }],
             })
                 .then((res: any) => { 
-                    this.wards = res.data.results.$values;
+                    this.wards = getCollection<Ward>(res.data.results);
                 })
                 .catch((err) => console.log(err));
         },

@@ -81,7 +81,7 @@
 <script setup lang="ts">
 import { reactive, ref, watchPostEffect } from "vue";
 import { convertResident, type Resident } from "../../interfaces/resident.interface";
-import type { Filter } from "../../interfaces/base.interface";
+import { getCollection, type Filter } from "../../interfaces/base.interface";
 import api from "../../middleware/axios.interceptor";
 import ResidentModal from "./ResidentModal.vue";
 
@@ -151,8 +151,7 @@ const getListResidents = (filterSearch: Filter) => {
     loading.value = true;
     api.post("/Residents/filter", filterSearch)
         .then((res) => {
-            if (!res.data.results || !res.data.results.$values) return;
-            residents.value = res.data.results.$values.map((item: Resident) => {
+            residents.value = getCollection<Resident>(res.data.results).map((item) => {
                 return convertResident(item);
             });
             totalRecords.value = res.data.totalRecords;

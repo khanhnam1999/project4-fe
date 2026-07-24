@@ -124,7 +124,7 @@ import {
     incidentStatus,
     type Incident,
 } from "../../interfaces/incident.interface";
-import type { Filter } from "../../interfaces/base.interface";
+import { getCollection, type Filter } from "../../interfaces/base.interface";
 import api from "../../middleware/axios.interceptor";
 import { message } from "ant-design-vue";
 
@@ -206,9 +206,8 @@ const getListIncidents = (filterSearch: Filter) => {
     loading.value = true;
     api.post("/Incidents/filter", filterSearch)
         .then((res) => {
-            if (!res.data.results || !res.data.results.$values) return;
             const { results, totalRecords } = res.data;
-            incidents.value = results.$values.map((item: Incident) => {
+            incidents.value = getCollection<Incident>(results).map((item) => {
                 const { account } = item.resident;
                 return {
                     ...item,

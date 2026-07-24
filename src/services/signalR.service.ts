@@ -2,7 +2,7 @@ import * as signalR from "@microsoft/signalr";
 
 // Khởi tạo kết nối tới endpoint đã map ở Program.cs
 const connection = new signalR.HubConnectionBuilder()
-    .withUrl("https://localhost:44312/notificationHub")
+    .withUrl("http://localhost:5207/notificationHub")
     .withAutomaticReconnect() // Tự động kết nối lại nếu mất mạng
     .build();
 

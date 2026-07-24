@@ -9,8 +9,7 @@
     >
         <contract-form
             v-if="
-                !apartmentDetail.contracts ||
-                !apartmentDetail.contracts.$values.length
+                !getCollection(apartmentDetail.contracts).length
             "
             :apartment="apartmentDetail"
             @createContractSuccess="onCreateContractSuccess"
@@ -176,7 +175,7 @@ import {
     residentDefault,
     type Resident,
 } from "../../../interfaces/resident.interface.ts";
-import type { Filter } from "../../../interfaces/base.interface.ts";
+import { getCollection, type Filter } from "../../../interfaces/base.interface.ts";
 import { debounce } from "lodash-es";
 import type { Contract } from "../../../interfaces/contract.interface.ts";
 import { paymentDefault, type Payment } from "../../../interfaces/payment.interface.ts";
@@ -229,7 +228,7 @@ const handleCloseAddResident = () => {
     isShowAddResident.value = false;
     selectedResident.value = { ...residentDefault };
     if (apartmentDetail.value.residents) {
-        apartmentDetail.value.residents.$values.pop();
+        getCollection(apartmentDetail.value.residents).pop();
     }
 };
 const handleSelectResident = (value: string) => {
@@ -273,8 +272,9 @@ const getListResidents = (filterSearch: Filter) => {
     // loading.value = true;
     api.post("/Residents/filter", filterSearch)
         .then((res) => {
-            if (!res.data.results || !res.data.results.$values) return;
-            listResidents.value.push(...res.data.results.$values);
+            listResidents.value.push(
+                ...getCollection<Resident>(res.data.results),
+            );
             totalResidents.value = res.data.totalRecords;
         })
         .catch((err) => {
@@ -320,18 +320,15 @@ const getApartmentDetal = (key: string) => {
         api.get(`/Apartments/${key}`)
             .then((res: any) => {
                 apartmentDetail.value = res.data;
-                if (
-                    apartmentDetail.value.contracts &&
-                    apartmentDetail.value.contracts.$values &&
-                    apartmentDetail.value.contracts.$values[0]
-                ) {
-                    const contract: Contract =
-                        apartmentDetail.value.contracts.$values[0];
+                const contracts = getCollection<Contract>(
+                    apartmentDetail.value.contracts,
+                );
+                if (contracts[0]) {
+                    const contract = contracts[0];
     
                     contractResident.contractId = contract.contractId;
                     if (
-                        contract.contractResidents &&
-                        contract.contractResidents.$values.length
+                        getCollection(contract.contractResidents).length
                     ) {
                         isFirstResident.value = false;
                         getListResidentByContract(contract.contractId);
@@ -353,7 +350,7 @@ const listResidentsInApartment = ref<Resident[]>([]);
 const getListResidentByContract = (contractId: string) => {
     api.get(`/Contracts/${contractId}`)
         .then((res) => {
-            res.data.contractResidents.$values.forEach(
+            getCollection<ContracResident>(res.data.contractResidents).forEach(
                 (item: ContracResident) => {
                     if (item.resident) {
                         listResidentsInApartment.value.push({
