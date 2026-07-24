@@ -7,14 +7,14 @@
                 top: 0;
                 z-index: 100;
             "
-            title="Danh sách sự cố"
+            title="Danh sách thanh toán"
         >
             <template #extra>
                 <a-select
                     v-model:value="selectedKey"
                     allowClear
-                    style="width: 200px"
-                    placeholder="Chọn trạng thái"
+                    style="width: 250px"
+                    placeholder="Chọn trạng thái thanh toán"
                 >
                     <a-select-option
                         v-for="item in paymentMethodData"
@@ -24,7 +24,7 @@
                         {{ item.label }}
                     </a-select-option>
                 </a-select>
-                <a-button type="primary"> Thêm mới cư dân </a-button>
+                <!-- <a-button type="primary"> Thêm mới cư dân </a-button> -->
             </template>
         </a-page-header>
         <div style="padding: 14px">
