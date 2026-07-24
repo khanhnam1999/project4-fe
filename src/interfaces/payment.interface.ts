@@ -38,7 +38,7 @@ export const paymentMethodData = [
 ];
 
 export const paymentStatusData = [
-    { value: 0, label: "Chưa thanh toán", type: "info" },
+    { value: 0, label: "Chưa thanh toán", type: "default" },
     { value: 1, label: "Đã chuyển khoản", type: "warning" },
     { value: 2, label: "Đã trả tiền mặt", type: "warning" },
     { value: 3, label: "Đã thanh toán", type: "success" },

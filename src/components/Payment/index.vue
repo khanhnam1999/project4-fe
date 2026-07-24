@@ -56,6 +56,7 @@
                             <a-switch
                                 v-if="[1, 2, 3].includes(text)"
                                 :checked="text === 3"
+                                :disabled="text === 3"
                                 @change="handleChangePaymentStatus(record)"
                                 :loading="record.statusLoading"
                             />
@@ -231,11 +232,11 @@ const getListPayments = (filterSearch: Filter) => {
 watchPostEffect(() => {
     const filterOption = {
         ...filter,
-        condition: [
+        conditions: [
             { key: "PaymentMethod", paymentStatusValue: selectedKey.value },
         ],
     };
-    getListPayments(selectedKey.value ? filterOption : filter);
+    getListPayments(selectedKey.value !== undefined ? filterOption : filter);
 });
 </script>
 <style lang=""></style>
