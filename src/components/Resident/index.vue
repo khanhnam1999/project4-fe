@@ -14,11 +14,12 @@
                     enter-button
                     :placeholder="`Nhập ${searchSelect === 1 ? 'số căn cước' : 'tên'}`"
                     @search="handleSearch"
+                    allow-clear
                 >
                     <template #addonBefore>
                         <a-select
                             v-model:value="searchSelect"
-                            style="width: 120px"
+                            style="width: 130px"
                         >
                             <a-select-option :value="0"> Tên </a-select-option>
                             <a-select-option :value="1">

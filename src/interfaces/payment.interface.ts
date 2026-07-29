@@ -8,7 +8,7 @@ export interface Payment {
     resident?: Resident;
     title: string;
     amount: number;
-    paymentDate?: Dayjs;
+    paymentDate?: string;
     paymentDeadline: Dayjs;
     paymentMethod?: number;
     paymentStatus: number;

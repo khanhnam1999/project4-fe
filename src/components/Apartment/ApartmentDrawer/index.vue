@@ -7,148 +7,150 @@
         :footer-style="{ textAlign: 'right' }"
         @close="onClose"
     >
-        <contract-form
-            v-if="
-                !getCollection(apartmentDetail.contracts).length
-            "
-            :apartment="apartmentDetail"
-            @createContractSuccess="onCreateContractSuccess"
-        />
-        <a-list
-            v-else
-            class="demo-loadmore-list"
-            item-layout="horizontal"
-            :data-source="listResidentsInApartment"
-        >
-            <template #loadMore>
-                <div
-                    style="text-align: center; margin: 12px 0"
-                    v-if="!isShowAddResident"
-                >
-                    <a-button @click="addNewResident">
-                        Thêm mới dân cư
-                    </a-button>
-                </div>
-            </template>
-            <template #renderItem="{ item }">
-                <a-list-item>
-                    <template #actions>
-                        <div v-if="item.residentId">
-                            <a-popconfirm
-                                v-if="(item.residentType === 0 && listResidentsInApartment.length === 1)
-                                || (item.residentType !== 0)"
-                                :okButtonProps="{ danger: true }"
-                                title="Bạn có muốn xóa cư dân này?"
-                                ok-text="Xóa"
-                                cancel-text="Hủy"
-                                @confirm="deleteResidentFromContract"
-                            >
-                                <a-button type="link" danger>Xóa</a-button>
-                            </a-popconfirm>
-                        </div>
-                        <template v-else>
-                            <a-space direction="vertical">
-                                <a-button
-                                    type="primary"
-                                    block
-                                    @click="submitAddResident"
-                                    :loading="loading"
-                                >
-                                    Thêm mới
-                                </a-button>
-                                <a-button
-                                    block
-                                    type="primary"
-                                    danger
-                                    @click="handleCloseAddResident"
-                                >
-                                    Xóa
-                                </a-button>
-                            </a-space>
-                        </template>
-                    </template>
-                    <a-form v-if="!item.residentId">
-                        <a-form-item>
-                            <a-typography-text v-if="isFirstResident">
-                                Đăng ký là chủ căn hộ
-                            </a-typography-text>
-                            <a-radio-group
-                                v-else
-                                v-model:value="contractResident.residentType"
-                            >
-                                <a-radio-button
-                                    v-for="item in residentTypeData"
-                                    :key="item.value"
-                                    :value="item.value"
-                                    :disabled="item.disabled"
-                                >
-                                    {{ item.label }}
-                                </a-radio-button>
-                            </a-radio-group>
-                        </a-form-item>
-                        <a-form-item>
-                            <a-input-group compact>
-                                <a-select
-                                    v-model:value="searchSelect"
-                                    style="width: 120px"
-                                >
-                                    <a-select-option :value="0">
-                                        Tên
-                                    </a-select-option>
-                                    <a-select-option :value="1">
-                                        Số căn cước
-                                    </a-select-option>
-                                </a-select>
-                                <a-select
-                                    show-search
-                                    placeholder="Chọn cư dân"
-                                    style="width: 200px"
-                                    :filter-option="false"
-                                    allowClear
-                                    @change="handleSelectResident"
-                                    @search="fetchUser"
-                                >
-                                    <a-select-option
-                                        v-for="resident in listResidents"
-                                        :key="resident.residentId"
-                                        :value="resident.residentId"
-                                    >
-                                        <a-space direction="vertical">
-                                            <a-typography-text>
-                                                {{ resident.account?.fullName }}
-                                            </a-typography-text>
-                                            <a-typography-text type="secondary">
-                                                {{
-                                                    resident.account
-                                                        ?.identityNumber
-                                                }}
-                                            </a-typography-text>
-                                            <a-typography-text type="secondary">
-                                                {{
-                                                    resident.account
-                                                        ?.phoneNumber
-                                                }}
-                                            </a-typography-text>
-                                        </a-space>
-                                    </a-select-option>
-                                </a-select>
-                            </a-input-group>
-                        </a-form-item>
-                    </a-form>
-                    <a-list-item-meta
-                        v-else
-                        :title="item.account.fullName"
-                        :description="getResidentTypeLabel(item.residentType)"
+        <a-spin :spinning="loading">
+            <contract-form
+                v-if="
+                    !getCollection(apartmentDetail.contracts).length
+                "
+                :apartment="apartmentDetail"
+                @createContractSuccess="onCreateContractSuccess"
+            />
+            <a-list
+                v-else
+                class="demo-loadmore-list"
+                item-layout="horizontal"
+                :data-source="listResidentsInApartment"
+            >
+                <template #loadMore>
+                    <div
+                        style="text-align: center; margin: 12px 0"
+                        v-if="!isShowAddResident"
                     >
-                        <template #avatar>
-                            <a-avatar size="large" style="margin: 0 24px">
-                                <template #icon><UserOutlined /></template>
-                            </a-avatar>
+                        <a-button @click="addNewResident">
+                            Thêm mới dân cư
+                        </a-button>
+                    </div>
+                </template>
+                <template #renderItem="{ item }">
+                    <a-list-item>
+                        <template #actions>
+                            <div v-if="item.residentId">
+                                <a-popconfirm
+                                    v-if="(item.residentType === 0 && listResidentsInApartment.length === 1)
+                                    || (item.residentType !== 0)"
+                                    :okButtonProps="{ danger: true }"
+                                    title="Bạn có muốn xóa cư dân này?"
+                                    ok-text="Xóa"
+                                    cancel-text="Hủy"
+                                    @confirm="deleteResidentFromContract"
+                                >
+                                    <a-button type="link" danger>Xóa</a-button>
+                                </a-popconfirm>
+                            </div>
+                            <template v-else>
+                                <a-space direction="vertical">
+                                    <a-button
+                                        type="primary"
+                                        block
+                                        @click="submitAddResident"
+                                        :loading="loading"
+                                    >
+                                        Thêm mới
+                                    </a-button>
+                                    <a-button
+                                        block
+                                        type="primary"
+                                        danger
+                                        @click="handleCloseAddResident"
+                                    >
+                                        Xóa
+                                    </a-button>
+                                </a-space>
+                            </template>
                         </template>
-                    </a-list-item-meta>
-                </a-list-item>
-            </template>
-        </a-list>
+                        <a-form v-if="!item.residentId">
+                            <a-form-item>
+                                <a-typography-text v-if="isFirstResident">
+                                    Đăng ký là chủ căn hộ
+                                </a-typography-text>
+                                <a-radio-group
+                                    v-else
+                                    v-model:value="contractResident.residentType"
+                                >
+                                    <a-radio-button
+                                        v-for="item in residentTypeData"
+                                        :key="item.value"
+                                        :value="item.value"
+                                        :disabled="item.disabled"
+                                    >
+                                        {{ item.label }}
+                                    </a-radio-button>
+                                </a-radio-group>
+                            </a-form-item>
+                            <a-form-item>
+                                <a-input-group compact>
+                                    <a-select
+                                        v-model:value="searchSelect"
+                                        style="width: 120px"
+                                    >
+                                        <a-select-option :value="0">
+                                            Tên
+                                        </a-select-option>
+                                        <a-select-option :value="1">
+                                            Số căn cước
+                                        </a-select-option>
+                                    </a-select>
+                                    <a-select
+                                        show-search
+                                        placeholder="Chọn cư dân"
+                                        style="width: 200px"
+                                        :filter-option="false"
+                                        allowClear
+                                        @change="handleSelectResident"
+                                        @search="fetchUser"
+                                    >
+                                        <a-select-option
+                                            v-for="resident in listResidents"
+                                            :key="resident.residentId"
+                                            :value="resident.residentId"
+                                        >
+                                            <a-space direction="vertical">
+                                                <a-typography-text>
+                                                    {{ resident.account?.fullName }}
+                                                </a-typography-text>
+                                                <a-typography-text type="secondary">
+                                                    {{
+                                                        resident.account
+                                                            ?.identityNumber
+                                                    }}
+                                                </a-typography-text>
+                                                <a-typography-text type="secondary">
+                                                    {{
+                                                        resident.account
+                                                            ?.phoneNumber
+                                                    }}
+                                                </a-typography-text>
+                                            </a-space>
+                                        </a-select-option>
+                                    </a-select>
+                                </a-input-group>
+                            </a-form-item>
+                        </a-form>
+                        <a-list-item-meta
+                            v-else
+                            :title="item.account.fullName"
+                            :description="getResidentTypeLabel(item.residentType)"
+                        >
+                            <template #avatar>
+                                <a-avatar size="large" style="margin: 0 24px">
+                                    <template #icon><UserOutlined /></template>
+                                </a-avatar>
+                            </template>
+                        </a-list-item-meta>
+                    </a-list-item>
+                </template>
+            </a-list>
+        </a-spin>
         <template #extra>
             <a-space>
                 <a-button style="margin-right: 8px" @click="onClose">
@@ -159,7 +161,7 @@
     </a-drawer>
 </template>
 <script lang="ts" setup>
-import { reactive, ref, watchPostEffect } from "vue";
+import { reactive, ref, watch, watchPostEffect } from "vue";
 import { type Apartment } from "../../../interfaces/apartment.interface";
 import api from "../../../middleware/axios.interceptor.ts";
 import { message } from "ant-design-vue";
@@ -185,6 +187,11 @@ const props = defineProps<{
     open: boolean;
     apartment: Apartment;
 }>();
+watch(() => props.open, (newValue) => {
+    if(newValue) {
+        loading.value = true;
+    }
+});
 
 const emit = defineEmits<{
     (e: "close"): void;
@@ -269,7 +276,7 @@ const submitAddResident = async () => {
     
 };
 const getListResidents = (filterSearch: Filter) => {
-    // loading.value = true;
+    loading.value = true;
     api.post("/Residents/filter", filterSearch)
         .then((res) => {
             listResidents.value.push(
@@ -281,7 +288,7 @@ const getListResidents = (filterSearch: Filter) => {
             console.log(err);
         })
         .finally(() => {
-            // loading.value = false;
+            loading.value = false;
         });
 };
 watchPostEffect(() => {
@@ -383,7 +390,10 @@ const deleteResidentFromContract = () => {
 
 watchPostEffect(() => {
     const key = props.apartment.apartmentId;
-    getApartmentDetal(key);
+    getApartmentDetal(key)
+        .finally(() => {
+            loading.value = false;
+        });
 });
 </script>
 <style></style>

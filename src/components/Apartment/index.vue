@@ -39,7 +39,7 @@
                     v-for="aprt in apartments"
                     :key="aprt.apartmentId"
                 >
-                    <a-card style="width: 300px" hoverable>
+                    <a-card hoverable>
                         <template #cover>
                             <img
                                 alt="example"

@@ -181,7 +181,15 @@ const handleChangePaymentStatus = (record: Payment) => {
         paymentStatus: record.paymentStatus,
         paymentType: record.paymentType,
         status: 3,
+        paymentDate: record.paymentDate,
     };
+    if(record.paymentMethod !== undefined && getPaymentMethodInfo(record.paymentMethod)) {
+        const { value } = getPaymentMethodInfo(record.paymentMethod);
+
+        if(value === 0) {
+            data.paymentDate = dayjs().format("YYYY-MM-DDTHH:mm:ss");
+        }
+    }
     record.statusLoading = true;
     api.put(`/Payments/${data.paymentId}`, data)
         .then((res) => {
@@ -214,12 +222,8 @@ const getListPayments = (filterSearch: Filter) => {
                         gender: account.gender,
                     };
                 }
-            });
-            console.log(totalRecords);
-            
+            });            
             totalRecords.value = totalRecords;
-            console.log(payments.value);
-            
         })
         .catch((err) => {
             console.log(err);
