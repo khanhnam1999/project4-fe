@@ -35,7 +35,7 @@
                 :pagination="false"
             >
                 <template #bodyCell="{ column, text, record }">
-                    <template v-if="column.key === 'paymentDeadline'">
+                    <template v-if="column.key === 'paymentDeadline' || column.key === 'paymentDate'">
                         <a-space direction="vertical">
                             <a-typography-text>
                                 {{ dayjs(text).format("DD/MM/YYYY") }}
@@ -121,8 +121,8 @@ const columns = [
     },
     {
         title: "Cư dân thanh toán",
-        dataIndex: "fullName",
-        key: "fullName",
+        dataIndex: "residentName",
+        key: "residentName",
     },
     {
         title: "Mô tả",
@@ -209,20 +209,7 @@ const getListPayments = (filterSearch: Filter) => {
     api.post("/Payments/filter", filterSearch)
         .then((res) => {
             const { results, totalRecords } = res.data;
-            payments.value = getCollection<Payment>(results).map((item) => {
-                if(!item.resident || !item.resident.account) {
-                    return item;
-                } else {
-                    const { account } = item.resident;
-                    return {
-                        ...item,
-                        statusLoading: false,
-                        fullName: account.fullName,
-                        phoneNumber: account.phoneNumber,
-                        gender: account.gender,
-                    };
-                }
-            });            
+            payments.value = results;
             totalRecords.value = totalRecords;
         })
         .catch((err) => {

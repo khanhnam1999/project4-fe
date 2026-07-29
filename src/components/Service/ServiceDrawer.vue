@@ -29,7 +29,19 @@
                             :loading="record.statusLoading"
                         />
                     </a-space>
-
+                </template>
+                <template v-else-if="column.key === 'startDate'">
+                    <div v-if="record.endDate">
+                        <a-space direction="vertical">
+                            <a-typography-text>
+                                Từ ngày: {{ dayjs(text).format("DD/MM/YYYY") }}
+                            </a-typography-text>
+                            <a-typography-text>
+                                Đến ngày: {{ dayjs(record.endDate).format("DD/MM/YYYY") }}
+                            </a-typography-text>
+                        </a-space>
+                    </div>
+                    <div v-else>{{ dayjs(text).format("DD/MM/YYYY") }}</div>
                 </template>
                 <template v-else-if="column.key === 'action'">
                     <a-popconfirm
@@ -39,7 +51,7 @@
                         cancel-text="Hủy"
                         @confirm="handleDelete(text)"
                     >
-                        <a-button danger type="link"> Delete </a-button>
+                        <a-button danger type="link"> Xóa </a-button>
                     </a-popconfirm>
                 </template>
             </template>
@@ -75,6 +87,7 @@ import { getCollection, type Filter, type FilterResult } from "../../interfaces/
 import api from "../../middleware/axios.interceptor";
 import { message } from "ant-design-vue";
 import type { Booking } from "../../interfaces/booking.interface";
+import dayjs from "dayjs";
 const props = defineProps<{
     serviceDetail: Service;
 }>();
@@ -99,6 +112,11 @@ const columns = [
         title: "Căn cước",
         dataIndex: "identityNumber",
         key: "identityNumber",
+    },
+    {
+        title: "Thời gian đặt lịch",
+        dataIndex: "startDate",
+        key: "startDate",
     },
     {
         title: "Trạng thái",
