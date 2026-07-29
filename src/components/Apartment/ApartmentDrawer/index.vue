@@ -250,31 +250,46 @@ const handleSelectResident = (value: string) => {
 };
 const submitAddResident = async () => {
     contractResident.residentId = selectedResident.value.residentId;
+    loading.value = true;
     if (isFirstResident.value) {
         contractResident.residentType = 0;
+        Promise.all([
+            api.post("/Contracts/addResidentToContract", contractResident), 
+            api.post("/Payments", {
+                ...payment,
+                paymentId: undefined,
+            }), 
+        ])
+            .then(() => {
+                message.success("Thêm cư dân thành công");
+                listResidentsInApartment.value = [];
+                getListResidentByContract(contractResident.contractId);
+                handleCloseAddResident();
+            })
+            .catch((err) => {
+                message.error("Thêm cư dân thất bại");
+            })
+            .finally(() => {
+                loading.value = false;
+            });
+    } else {
+        api.post("/Contracts/addResidentToContract", contractResident)
+            .then(() => {
+                message.success("Thêm cư dân thành công");
+                listResidentsInApartment.value = [];
+                getListResidentByContract(contractResident.contractId);
+                handleCloseAddResident();
+            })
+            .catch((err) => {
+                message.error("Thêm cư dân thất bại");
+            })
+            .finally(() => {
+                loading.value = false;
+            });
     }
-    loading.value = true;
-    Promise.all([
-        api.post("/Contracts/addResidentToContract", contractResident), 
-        api.post("/Payments", {
-            ...payment,
-            paymentId: undefined,
-        }), 
-    ])
-        .then(() => {
-            message.success("Thêm cư dân thành công");
-            listResidentsInApartment.value = [];
-            getListResidentByContract(contractResident.contractId);
-            handleCloseAddResident();
-        })
-        .catch((err) => {
-            message.error("Thêm cư dân thất bại");
-        })
-        .finally(() => {
-            loading.value = false;
-        });
     
 };
+
 const getListResidents = (filterSearch: Filter) => {
     loading.value = true;
     api.post("/Residents/filter", filterSearch)

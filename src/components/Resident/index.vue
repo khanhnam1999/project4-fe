@@ -76,6 +76,7 @@
         <resident-modal
             v-model:open="openModal"
             :selectedId="selectedResident"
+            @actionSuccess="getListResidents(filter)"
         />
     </div>
 </template>

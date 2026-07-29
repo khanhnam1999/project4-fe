@@ -35,7 +35,7 @@
                     v-for="service in services"
                     :key="service.serviceId"
                 >
-                    <a-card hoverable style="width: 300px">
+                    <a-card hoverable>
                         <template #cover>
                             <img
                                 alt="example"
@@ -180,7 +180,7 @@ const handleSubmit = () => {
         api.post(`/Services`, { ...serviceDetail.value, serviceId: undefined })
             .then((res) => {
                 message.success("Thêm mới dịch vụ thành công!");
-                services.value.push(serviceDetail.value);
+                getListService();
             })
             .catch((err) => {
                 message.error("Thêm mới dịch vụ thất bại");
@@ -222,7 +222,7 @@ const handleDelete = (data: Service) => {
     });
 };
 
-onMounted(() => {
+const getListService = () => {
     api.get("/Services")
         .then((res) => {
             services.value = res.data;
@@ -230,6 +230,10 @@ onMounted(() => {
         .catch((err) => {
             console.log(err);
         });
+}
+
+onMounted(() => {
+    getListService();
 });
 </script>
 <style lang="" scoped></style>

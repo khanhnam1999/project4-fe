@@ -25,6 +25,9 @@ const props = defineProps({
         default: "",
     },
 });
+const emit = defineEmits<{
+    (e: "actionSuccess"): void;
+}>();
 
 const isEdit = ref<boolean>(false);
 
@@ -45,17 +48,18 @@ const handleSubmitForm = () => {
                 .then((res) => resolve(res))
                 .catch(err => reject(err));
         } else {
-            const { data: accountId } = await registerForm.value.handleRegister();
-            const { data } = await api.post("/Residents", {
-                residentId: undefined,
-                accountId,
-            });
-
-            if (data) {
-                resolve(data);
-            } else {
-                reject();
-            }
+            registerForm.value.handleRegister()
+                .then(async(res: any) => {
+                    const {data: accountId} = res;
+                    const { data } = await api.post("/Residents", {
+                        residentId: undefined,
+                        accountId,
+                    });
+                    resolve(data);
+                })
+                .catch(err => {
+                    reject(err);
+                });
         }
     })
 }
@@ -65,12 +69,13 @@ const handleSubmit = () => {
     handleSubmitForm()
         .then(res => {
             message.success("Thao tác thành công");
+            emit("actionSuccess");
+            loading.value = false;
+            handleCancelModal();
         })
         .catch(err => {
             console.log(err);
             message.error("Thao tác với cư dân thất bại");
-        })
-        .finally(() => {
             loading.value = false;
         });
 };
@@ -78,12 +83,14 @@ const handleSubmit = () => {
 watch(open, async(newValue) => {    
     await nextTick();
     if(newValue && props.selectedId !== "Add") {
+        isEdit.value = true;
         loading.value = true;
         await registerForm.value.getDetail(props.selectedId)
             .finally(() => {
                 loading.value = false;
             })
     } else {
+        isEdit.value = false;
         registerForm.value.resetFormState();
     }
 });
