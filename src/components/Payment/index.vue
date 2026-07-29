@@ -7,15 +7,18 @@
                 top: 0;
                 z-index: 100;
             "
-            title="Danh sách thanh toán"
+            title="Trang thanh toán"
         >
             <template #extra>
                 <a-select
                     v-model:value="selectedKey"
                     allowClear
-                    style="width: 250px"
-                    placeholder="Chọn trạng thái thanh toán"
+                    style="width: 200px"
+                    placeholder="Phương thức thanh toán"
                 >
+                    <a-select-option :value="-1">
+                        Tất cả
+                    </a-select-option>
                     <a-select-option
                         v-for="item in paymentMethodData"
                         :key="item.value"
@@ -24,7 +27,47 @@
                         {{ item.label }}
                     </a-select-option>
                 </a-select>
-                <!-- <a-button type="primary"> Thêm mới cư dân </a-button> -->
+                <a-input-search
+                    v-if="searchField === 'Title'"
+                    enter-button="Tìm kiếm"
+                    style="width: 420px"
+                    placeholder="Nhập tiêu đề thanh toán"
+                    @search="handleSearch"
+                >
+                    <template #addonBefore>
+                        <a-select
+                            v-model:value="searchField"
+                            style="width: 140px"
+                        >
+                            <a-select-option value="Title">
+                                Tiêu đề
+                            </a-select-option>
+                            <a-select-option value="PaymentDate">
+                                Ngày thanh toán
+                            </a-select-option>
+                        </a-select>
+                    </template>
+                </a-input-search>
+                <a-input-group v-else compact style="width: 420px">
+                    <a-select
+                        v-model:value="searchField"
+                        style="width: 140px"
+                    >
+                        <a-select-option value="Title">
+                            Tiêu đề
+                        </a-select-option>
+                        <a-select-option value="PaymentDate">
+                            Ngày thanh toán
+                        </a-select-option>
+                    </a-select>
+                    <a-date-picker
+                        v-model:value="searchDate"
+                        format="DD/MM/YYYY"
+                        placeholder="Chọn ngày thanh toán"
+                        allow-clear
+                        style="width: 280px"
+                    />
+                </a-input-group>
             </template>
         </a-page-header>
         <div style="padding: 14px">
@@ -45,22 +88,51 @@
                             </a-typography-text>
                         </a-space>
                     </template>
+                    <template v-else-if="column.key === 'createdDate'">
+                        <a-space v-if="text" direction="vertical">
+                            <a-typography-text>
+                                {{ dayjs(text).format("DD/MM/YYYY") }}
+                            </a-typography-text>
+                            <a-typography-text>
+                                {{ dayjs(text).format("HH:mm") }}
+                            </a-typography-text>
+                        </a-space>
+                        <a-typography-text v-else type="secondary">
+                            Chưa có dữ liệu
+                        </a-typography-text>
+                    </template>
                     <template v-else-if="column.key === 'paymentStatus'">
                         <a-space direction="vertical">
                             <a-tag :color="getPaymentStatusInfo(text)?.type">
                                 {{ getPaymentStatusInfo(text)?.label }}
                             </a-tag>
                             <a-tag v-if="text === 3" color="success">
-                                {{ getPaymentMethodInfo(text)?.label }}
+                                {{
+                                    getPaymentMethodInfo(record.paymentMethod)
+                                        ?.label
+                                }}
                             </a-tag>
                             <a-switch
                                 v-if="[1, 2, 3].includes(text)"
                                 :checked="text === 3"
-                                :disabled="text === 3"
+                                :disabled="text === 3 || !record.transactionId"
                                 @change="handleChangePaymentStatus(record)"
                                 :loading="record.statusLoading"
                             />
                         </a-space>
+                    </template>
+                    <template v-else-if="column.key === 'paymentDate'">
+                        <a-space v-if="text" direction="vertical">
+                            <a-typography-text>
+                                {{ dayjs(text).format("DD/MM/YYYY") }}
+                            </a-typography-text>
+                            <a-typography-text>
+                                {{ dayjs(text).format("HH:mm") }}
+                            </a-typography-text>
+                        </a-space>
+                        <a-typography-text v-else type="secondary">
+                            Chưa có dữ liệu
+                        </a-typography-text>
                     </template>
                     <template v-else-if="column.key === 'action'">
                         <a-space direction="vertical">
@@ -111,7 +183,7 @@ import {
     paymentStatusData,
     type Payment,
 } from "../../interfaces/payment.interface";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 
 const columns = [
     {
@@ -135,12 +207,17 @@ const columns = [
         key: "paymentDeadline",
     },
     {
+        title: "Ngày tạo payment",
+        dataIndex: "createdDate",
+        key: "createdDate",
+    },
+    {
         title: "Trạng thái",
         dataIndex: "paymentStatus",
         key: "paymentStatus",
     },
     {
-        title: "Ngày thanh toán",
+        title: "Thời gian khách thanh toán",
         dataIndex: "paymentDate",
         key: "paymentDate",
     },
@@ -150,7 +227,10 @@ const columns = [
         key: "action",
     },
 ];
-const selectedKey = ref<number>();
+const selectedKey = ref<number>(-1);
+const searchField = ref<"Title" | "PaymentDate">("Title");
+const searchValue = ref<string>("");
+const searchDate = ref<Dayjs>();
 const loading = ref<boolean>(false);
 const payments = ref<Payment[]>([]);
 const totalRecords = ref<number>(0);
@@ -170,25 +250,25 @@ const getPaymentMethodInfo = (method: number) => {
     return paymentMethodData.find((a) => a.value === method);
 };
 
+const handleSearch = (value: string) => {
+    searchValue.value = value.trim();
+    filter.page = 1;
+};
+
 const handleChangePaymentStatus = (record: Payment) => {
-    const data: Payment = {
-        paymentId: record.paymentId,
-        residentId: record.residentId,
-        title: record.title,
-        amount: record.amount,
-        paymentDeadline: record.paymentDeadline,
-        description: record.description,
-        paymentStatus: record.paymentStatus,
-        paymentType: record.paymentType,
-        status: 3,
-    };
+    if (!record.transactionId) {
+        message.error("Giao dịch này chưa có mã để xác nhận");
+        return;
+    }
+
     record.statusLoading = true;
-    api.put(`/Payments/${data.paymentId}`, data)
-        .then((res) => {
-            record.status = data.status;
+    api.put(`/Payments/transactions/${record.transactionId}/confirm`)
+        .then(() => {
+            record.paymentStatus = 3;
+            record.paymentDate = dayjs();
             message.success("Thay đổi trạng thái thành công");
         })
-        .catch((err) => {
+        .catch(() => {
             message.error("Thay đổi trạng thái thất bại");
         })
         .finally(() => {
@@ -198,26 +278,53 @@ const handleChangePaymentStatus = (record: Payment) => {
 
 const getListPayments = (filterSearch: Filter) => {
     loading.value = true;
-    api.post("/Payments/filter", filterSearch)
-        .then((res) => {
+    Promise.all([
+        api.post("/Payments/filter", filterSearch),
+        api.get("/Payments"),
+    ])
+        .then(([res, allPaymentsResponse]) => {
             const { results, totalRecords } = res.data;
-            payments.value = getCollection<Payment>(results).map((item) => {
-                if(!item.resident || !item.resident.account) {
-                    return item;
-                } else {
-                    const { account } = item.resident;
+            const createdDates = new Map<string, Payment["createdDate"]>(
+                getCollection<Payment>(allPaymentsResponse.data).map(
+                    (item): [string, Payment["createdDate"]] => [
+                        item.paymentId,
+                        item.createdDate,
+                    ],
+                ),
+            );
+
+            payments.value = getCollection<Payment>(results)
+                .filter(
+                    (item) =>
+                        searchField.value !== "PaymentDate" ||
+                        !searchDate.value ||
+                        (item.paymentDate &&
+                            dayjs(item.paymentDate).isSame(
+                                searchDate.value,
+                                "day",
+                            )),
+                )
+                .map((item) => {
+                    const account = item.resident?.account;
+
                     return {
                         ...item,
+                        createdDate:
+                            item.createdDate ??
+                            createdDates.get(item.paymentId),
                         statusLoading: false,
-                        fullName: account.fullName,
-                        phoneNumber: account.phoneNumber,
-                        gender: account.gender,
+                        fullName:
+                            item.residentName ?? account?.fullName ?? "",
+                        phoneNumber: account?.phoneNumber,
+                        gender: account?.gender,
                     };
-                }
-            });
+                });
             console.log(totalRecords);
             
-            totalRecords.value = totalRecords;
+            totalRecords.value =
+                searchField.value === "PaymentDate" && searchDate.value
+                ? payments.value.length
+                : totalRecords;
             console.log(payments.value);
             
         })
@@ -230,13 +337,34 @@ const getListPayments = (filterSearch: Filter) => {
 };
 
 watchPostEffect(() => {
-    const filterOption = {
+    const conditions: Filter["conditions"] = [];
+
+    if (searchField.value === "Title" && searchValue.value) {
+        conditions.push({
+            key: searchField.value,
+            value: searchValue.value,
+        });
+    }
+
+    if (selectedKey.value >= 0) {
+        conditions.push({
+            key: "PaymentMethod",
+            paymentStatusValue: selectedKey.value,
+        });
+    }
+
+    getListPayments({
         ...filter,
-        conditions: [
-            { key: "PaymentMethod", paymentStatusValue: selectedKey.value },
-        ],
-    };
-    getListPayments(selectedKey.value !== undefined ? filterOption : filter);
+        page:
+            searchField.value === "PaymentDate" && searchDate.value
+                ? 0
+                : filter.page,
+        limit:
+            searchField.value === "PaymentDate" && searchDate.value
+                ? 0
+                : filter.limit,
+        conditions,
+    });
 });
 </script>
 <style lang=""></style>
