@@ -6,10 +6,13 @@ export interface Payment {
     paymentId: string;
     residentId: string;
     resident?: Resident;
+    residentName?: string;
+    fullName?: string;
     title: string;
     amount: number;
     paymentDate?: string;
     paymentDeadline: Dayjs;
+    createdDate?: Dayjs;
     paymentMethod?: number;
     paymentStatus: number;
     description: string;

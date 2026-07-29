@@ -3,6 +3,7 @@ export interface Condition {
     guidValue?: string;
     value?: string;
     incidentStatusValue?: number;
+    paymentStatusValue?: number;
 }
 export interface Filter {
     page: number;
