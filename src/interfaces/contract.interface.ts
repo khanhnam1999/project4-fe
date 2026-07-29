@@ -7,6 +7,7 @@ import type { CollectionResponse } from "./base.interface";
 export interface Contract {
     contractId: string;
     apartmentId: string;
+    isDeleted?: boolean;
     apartment?: Apartment;
     startDate: Dayjs;
     endDate?: Dayjs;

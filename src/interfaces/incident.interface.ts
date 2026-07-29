@@ -11,6 +11,7 @@ export interface Incident {
     status: number;
     resolvedDescription: string;
     closedDescription: string;
+    cancelDescription?: string;
     [key: string]: any;
 }
 

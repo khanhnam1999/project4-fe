@@ -7,6 +7,7 @@ export interface ContracResident {
     residentId: string;
     resident?: Resident;
     residentType: number;
+    isDeleted?: boolean;
 }
 
 export const contracResidentDefault: ContracResident = {

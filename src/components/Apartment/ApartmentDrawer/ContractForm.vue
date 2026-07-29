@@ -54,7 +54,6 @@ import {
 
 import { type Apartment } from "../../../interfaces/apartment.interface.ts";
 import { InputService } from "../../../services/input.service.ts";
-import { Payment } from "../../../interfaces/payment.interface.ts";
 
 const props = defineProps<{
     apartment: Apartment;
@@ -92,9 +91,9 @@ const handleCreateContract = () => {
 </script>
 <style>
 .radioStyle {
-    display: "flex";
+    display: flex;
     width: 100%;
-    height: "30px";
-    lineheight: "30px";
+    height: 30px;
+    line-height: 30px;
 }
 </style>
