@@ -8,9 +8,7 @@
         @close="onClose"
     >
         <contract-form
-            v-if="
-                !getCollection(apartmentDetail.contracts).length
-            "
+            v-if="!activeContracts.length"
             :apartment="apartmentDetail"
             @createContractSuccess="onCreateContractSuccess"
         />
@@ -41,7 +39,7 @@
                                 title="Bạn có muốn xóa cư dân này?"
                                 ok-text="Xóa"
                                 cancel-text="Hủy"
-                                @confirm="deleteResidentFromContract"
+                                @confirm="deleteResidentFromContract(item)"
                             >
                                 <a-button type="link" danger>Xóa</a-button>
                             </a-popconfirm>
@@ -159,7 +157,7 @@
     </a-drawer>
 </template>
 <script lang="ts" setup>
-import { reactive, ref, watchPostEffect } from "vue";
+import { computed, reactive, ref, watch, watchPostEffect } from "vue";
 import { type Apartment } from "../../../interfaces/apartment.interface";
 import api from "../../../middleware/axios.interceptor.ts";
 import { message } from "ant-design-vue";
@@ -191,6 +189,7 @@ const emit = defineEmits<{
 }>();
 
 const onClose = () => {
+    handleCloseAddResident();
     listResidentsInApartment.value = [];
     emit("close");
 };
@@ -227,8 +226,10 @@ const addNewResident = () => {
 const handleCloseAddResident = () => {
     isShowAddResident.value = false;
     selectedResident.value = { ...residentDefault };
-    if (apartmentDetail.value.residents) {
-        getCollection(apartmentDetail.value.residents).pop();
+    const lastResident =
+        listResidentsInApartment.value[listResidentsInApartment.value.length - 1];
+    if (lastResident && !lastResident.residentId) {
+        listResidentsInApartment.value.pop();
     }
 };
 const handleSelectResident = (value: string) => {
@@ -242,39 +243,72 @@ const handleSelectResident = (value: string) => {
     } 
 };
 const submitAddResident = async () => {
-    contractResident.residentId = selectedResident.value.residentId;
-    if (isFirstResident.value) {
-        contractResident.residentType = 0;
+    const residentId = selectedResident.value.residentId;
+    const contractId = contractResident.contractId;
+    const createInitialPayment = isFirstResident.value;
+
+    if (!residentId) {
+        message.warning("Vui lòng chọn cư dân");
+        return;
     }
+    if (!contractId) {
+        message.error("Không xác định được hợp đồng của căn hộ");
+        return;
+    }
+
     loading.value = true;
-    Promise.all([
-        api.post("/Contracts/addResidentToContract", contractResident), 
-        api.post("/Payments", {
-            ...payment,
-            paymentId: undefined,
-        }), 
-    ])
-        .then(() => {
-            message.success("Thêm cư dân thành công");
-            listResidentsInApartment.value = [];
-            getListResidentByContract(contractResident.contractId);
-            handleCloseAddResident();
-        })
-        .catch((err) => {
-            message.error("Thêm cư dân thất bại");
-        })
-        .finally(() => {
-            loading.value = false;
+    try {
+        await api.post("/Contracts/addResidentToContract", {
+            ...contractResident,
+            contractId,
+            residentId,
+            residentType: createInitialPayment
+                ? 0
+                : contractResident.residentType,
         });
-    
+
+        if (createInitialPayment) {
+            try {
+                await api.post("/Payments", {
+                    ...payment,
+                    paymentId: undefined,
+                    contractId,
+                    residentId,
+                });
+            } catch {
+                message.warning(
+                    "Đã thêm cư dân nhưng không tạo được hóa đơn ban đầu",
+                );
+                listResidentsInApartment.value = [];
+                await getListResidentByContract(contractId);
+                handleCloseAddResident();
+                return;
+            }
+        }
+
+        message.success("Thêm cư dân thành công");
+        isFirstResident.value = false;
+        listResidentsInApartment.value = [];
+        await getListResidentByContract(contractId);
+        handleCloseAddResident();
+    } catch (error: any) {
+        const backendMessage =
+            typeof error?.response?.data === "string"
+                ? error.response.data
+                : error?.response?.data?.message;
+        message.error({
+            content: backendMessage || "Thêm cư dân thất bại",
+            key: "add-resident",
+        });
+    } finally {
+        loading.value = false;
+    }
 };
 const getListResidents = (filterSearch: Filter) => {
     // loading.value = true;
     api.post("/Residents/filter", filterSearch)
         .then((res) => {
-            listResidents.value.push(
-                ...getCollection<Resident>(res.data.results),
-            );
+            listResidents.value = getCollection<Resident>(res.data.results);
             totalResidents.value = res.data.totalRecords;
         })
         .catch((err) => {
@@ -289,30 +323,42 @@ watchPostEffect(() => {
 });
 
 const apartmentDetail = ref<Apartment>({ ...props.apartment });
+const activeContracts = computed(() =>
+    getCollection<Contract>(apartmentDetail.value.contracts).filter(
+        (contract) => !contract.isDeleted,
+    ),
+);
 const loading = ref<boolean>(false);
 const contractResident = reactive<ContracResident>({
     ...contracResidentDefault,
 });
 const payment = reactive<Payment>({...paymentDefault});
+const prepareInitialPayment = (contract: Contract) => {
+    payment.contractId = contract.contractId;
+    payment.paymentType = "0";
+    payment.paymentStatus = 0;
+
+    if (contract.type === 0) {
+        payment.amount = apartmentDetail.value.buyPrice;
+        payment.title = "Thanh toán tiền nhà";
+        payment.description = "Thanh toán tiền nhà sau khi ký hợp đồng";
+        return;
+    }
+
+    const dayLeft = dayjs().endOf("month").diff(dayjs(), "day") + 1;
+    const daysInMonth = dayjs().daysInMonth();
+    payment.amount =
+        (apartmentDetail.value.rentPrice / daysInMonth) * dayLeft;
+    payment.title = "Thanh toán tiền nhà tháng đầu tiên";
+    payment.description =
+        `Thanh toán tiền nhà sau ${dayLeft} ngày cho tới cuối tháng`;
+};
 const onCreateContractSuccess = async (data: Contract) => {
     isFirstResident.value = true;
     contractResident.contractId = data.contractId;
 
     await getApartmentDetal(props.apartment.apartmentId);
-
-    if(data.type === 0) { // trả thẳng
-        payment.amount = apartmentDetail.value.buyPrice;
-        payment.title = "Thanh toán tiền nhà";
-        payment.description = "Thanh toán tiền nhà sau khi ký hợp đồng";
-    } else { // trả tiền thuê
-        // tính số ngày còn lại tới cuối tháng
-        const dayLeft = dayjs().endOf("month").diff(dayjs(), "day") + 1;
-        // Lấy số ngày trong tháng hiện tại
-        const daysInMonth = dayjs().daysInMonth();
-        payment.amount = (apartmentDetail.value.rentPrice / daysInMonth) * dayLeft;
-        payment.title = "Thanh toán tiền nhà tháng đầu tiên";
-        payment.description = `Thanh toán tiền nhà sau ${dayLeft} ngày cho tới cuối tháng`;
-    } 
+    prepareInitialPayment(data);
 };
 
 const getApartmentDetal = (key: string) => {
@@ -322,19 +368,26 @@ const getApartmentDetal = (key: string) => {
                 apartmentDetail.value = res.data;
                 const contracts = getCollection<Contract>(
                     apartmentDetail.value.contracts,
-                );
+                ).filter((contract) => !contract.isDeleted);
                 if (contracts[0]) {
                     const contract = contracts[0];
+                    const activeContractResidents =
+                        getCollection<ContracResident>(
+                            contract.contractResidents,
+                        ).filter((item) => !item.isDeleted);
     
                     contractResident.contractId = contract.contractId;
-                    if (
-                        getCollection(contract.contractResidents).length
-                    ) {
+                    if (activeContractResidents.length) {
                         isFirstResident.value = false;
                         getListResidentByContract(contract.contractId);
                     } else {
                         isFirstResident.value = true;
+                        prepareInitialPayment(contract);
                     }
+                } else {
+                    contractResident.contractId = "";
+                    isFirstResident.value = true;
+                    listResidentsInApartment.value = [];
                 }
                 resolve(res);
             })
@@ -348,11 +401,12 @@ const getApartmentDetal = (key: string) => {
 
 const listResidentsInApartment = ref<Resident[]>([]);
 const getListResidentByContract = (contractId: string) => {
-    api.get(`/Contracts/${contractId}`)
+    listResidentsInApartment.value = [];
+    return api.get(`/Contracts/${contractId}`)
         .then((res) => {
             getCollection<ContracResident>(res.data.contractResidents).forEach(
                 (item: ContracResident) => {
-                    if (item.resident) {
+                    if (!item.isDeleted && item.resident) {
                         listResidentsInApartment.value.push({
                             ...item.resident,
                             residentType: item.residentType,
@@ -360,30 +414,50 @@ const getListResidentByContract = (contractId: string) => {
                     }
                 },
             );
+            isFirstResident.value =
+                listResidentsInApartment.value.length === 0;
         })
         .catch((err) => {
             console.log(err);
         });
 };
 
-const deleteResidentFromContract = () => {
+const deleteResidentFromContract = (resident: Resident) => {
+    const contractId = contractResident.contractId;
+
+    if (!contractId || !resident.residentId) {
+        message.error("Không xác định được cư dân hoặc hợp đồng cần xóa");
+        return;
+    }
+
     api.post("/Contracts/updateResidentToContract", {
-        ...contractResident,
+        contractId,
+        residentId: resident.residentId,
+        residentType: resident.residentType ?? 0,
         isDeleted: true,
     })
-        .then(res => {
+        .then(() => {
             message.success("Xóa thành công");
             listResidentsInApartment.value = [];
-            getListResidentByContract(contractResident.contractId);
+            getListResidentByContract(contractId);
         })
-        .catch(err => {
+        .catch(() => {
             message.error("Xóa thật bại");
         });
 };
 
-watchPostEffect(() => {
-    const key = props.apartment.apartmentId;
-    getApartmentDetal(key);
-});
+watch(
+    [() => props.open, () => props.apartment.apartmentId],
+    ([open, apartmentId]) => {
+        if (!open || !apartmentId) return;
+
+        isShowAddResident.value = false;
+        selectedResident.value = { ...residentDefault };
+        listResidentsInApartment.value = [];
+        apartmentDetail.value = { ...props.apartment };
+        getApartmentDetal(apartmentId);
+    },
+    { immediate: true },
+);
 </script>
 <style></style>

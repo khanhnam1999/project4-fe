@@ -2,7 +2,7 @@ import axios from "axios";
 import { CookieService } from "../services/cookie.service";
 
 const api = axios.create({
-    baseURL: "https://localhost:44312/api",
+    baseURL: "http://localhost:5207/api",
 });
 
 // Request interceptor

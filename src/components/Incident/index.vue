@@ -23,6 +23,7 @@
                     <a-table
                         :dataSource="incidents"
                         :columns="columns"
+                        row-key="incidentId"
                         :loading="loading"
                         :pagination="false"
                     >
@@ -49,7 +50,7 @@
                             <template v-else-if="column.key === 'action'">
                                 <a-space direction="vertical">
                                     <a-button
-                                        v-if="activeKey === 4"
+                                        v-if="[0, 4].includes(activeKey)"
                                         type="primary"
                                         block
                                         @click="handleSubmitIncident(record)"
@@ -76,6 +77,7 @@
                                         </a-button>
                                     </a-popconfirm>
                                     <a-popconfirm 
+                                        v-if="[0, 1, 2, 4].includes(activeKey)"
                                         @confirm="handleSubmitIncident(record, true)"
                                         @cancel="handleCancelIncident"
                                         ok-text="Hủy"
@@ -117,9 +119,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { computed, reactive, ref, watchPostEffect } from "vue";
-import { QuestionCircleOutlined } from '@ant-design/icons-vue';
-
+import { computed, reactive, ref, watch } from "vue";
 import {
     incidentStatus,
     type Incident,
@@ -168,7 +168,7 @@ const filter = reactive<Filter>({
     page: 1,
     limit: 20,
     conditions: [{ key: "Status", incidentStatusValue: activeKey.value }],
-    sortName: "ModifiedAt",
+    sortName: "ModifiedDate",
     sortMethod: "DESC",
 });
 
@@ -196,46 +196,86 @@ const submitBtnText = computed(() => {
     return text;
 });
 
-const handleChangeTab = (value: number) => {
+const handleChangeTab = () => {
     filter.page = 1;
-    filter.limit = 20;
-    filter.conditions = [{ key: "Status", incidentStatusValue: value }];
 };
 
-const getListIncidents = (filterSearch: Filter) => {
+let incidentRequestController: AbortController | undefined;
+const getListIncidents = async () => {
+    incidentRequestController?.abort();
+    const controller = new AbortController();
+    incidentRequestController = controller;
+    const requestFilter: Filter = {
+        page: filter.page,
+        limit: filter.limit,
+        conditions: [
+            { key: "Status", incidentStatusValue: activeKey.value },
+        ],
+        sortName: filter.sortName,
+        sortMethod: filter.sortMethod,
+    };
+
     loading.value = true;
-    api.post("/Incidents/filter", filterSearch)
-        .then((res) => {
-            const { results, totalRecords } = res.data;
-            incidents.value = getCollection<Incident>(results).map((item) => {
-                const { account } = item.resident;
-                return {
-                    ...item,
-                    roomNumber: item.apartment.roomNumber,
-                    fullName: account.fullName,
-                    phoneNumber: account.phoneNumber,
-                    gender: account.gender,
-                };
-            });
-            totalRecords.value = totalRecords;
-        })
-        .catch((err) => {
-            console.log(err);
-        })
-        .finally(() => {
-            loading.value = false;
+    try {
+        const res = await api.post("/Incidents/filter", requestFilter, {
+            signal: controller.signal,
         });
+        if (controller !== incidentRequestController) return;
+
+        const { results, totalRecords: responseTotal } = res.data;
+        incidents.value = getCollection<Incident>(results).map((item) => {
+            const account = item.resident?.account;
+            return {
+                ...item,
+                roomNumber: item.apartment?.roomNumber ?? "Chưa có dữ liệu",
+                fullName: account?.fullName ?? "Chưa có dữ liệu",
+                phoneNumber: account?.phoneNumber ?? "Chưa có dữ liệu",
+                gender: account?.gender,
+            };
+        });
+        totalRecords.value = responseTotal;
+    } catch (error: any) {
+        if (error?.code !== "ERR_CANCELED") {
+            const backendMessage =
+                typeof error?.response?.data === "string"
+                    ? error.response.data
+                    : error?.response?.data?.message;
+            message.error({
+                content:
+                    backendMessage || "Không tải được danh sách sự cố",
+                key: "load-incidents",
+            });
+        }
+    } finally {
+        if (controller === incidentRequestController) {
+            loading.value = false;
+        }
+    }
 };
 
-watchPostEffect(() => {
-    getListIncidents(filter);
-});
+watch(
+    [
+        activeKey,
+        () => filter.page,
+        () => filter.limit,
+    ],
+    getListIncidents,
+    { immediate: true },
+);
 
 const statusDesciption = ref<string>();
 const handleCancelIncident = () => {
     statusDesciption.value = "";
 }
 const handleSubmitIncident = (record: any, isCancel: boolean = false) => {
+    const reason = statusDesciption.value?.trim();
+    const requiresReason =
+        isCancel || [1, 2, 3, 5].includes(activeKey.value);
+    if (requiresReason && !reason) {
+        message.warning("Vui lòng nhập lý do");
+        return;
+    }
+
     const data = {
         reportedBy: record.reportedBy,
         apartmentId: record.apartmentId,
@@ -248,24 +288,27 @@ const handleSubmitIncident = (record: any, isCancel: boolean = false) => {
     };
     if(isCancel) {
         data.status = 5;
-        data.cancelDescription = statusDesciption.value;
+        data.cancelDescription = reason;
     } else {
         switch (activeKey.value) {
+            case 0: // Sự cố mới
+                data.status = 1; // => Tiếp nhận
+                break;
             case 3: // Hoàn thành
             case 5: // Đã hủy
                 data.status = 4; // => Tái phát sinh
-                data.description = statusDesciption.value;
+                data.description = reason;
                 break;
             case 4:
                 data.status = 1; // Tái phát sinh => Tiếp nhận
                 break;
             case 1:
                 data.status = 2;
-                data.resolvedDescription = statusDesciption.value;
+                data.resolvedDescription = reason;
                 break;
             case 2:
                 data.status = 3;
-                data.closedDescription = statusDesciption.value;
+                data.closedDescription = reason;
                 break;
             default:
                 message.warning("Không tìm thấy chức năng");
@@ -277,7 +320,7 @@ const handleSubmitIncident = (record: any, isCancel: boolean = false) => {
         .then(res => {
             message.success("Thay đổi trạng thái thành công");
             activeKey.value = data.status;
-            filter.conditions = [{ key: "Status", incidentStatusValue: activeKey.value }];
+            filter.page = 1;
         })
         .catch(err => {
             message.error("Thay đổi trạng thái không thành công");

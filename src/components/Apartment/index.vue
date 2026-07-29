@@ -145,15 +145,14 @@ const handleOpenModal = (edit: boolean, data?: Apartment) => {
 };
 
 const handleOpenDrawer = (data: Apartment) => {
+    apartment.value = { ...data };
     drawerOpen.value = true;
-    setTimeout(() => {
-        apartment.value = data;
-    }, 500);
 };
 
 const handleCloseDrawer = () => {
     drawerOpen.value = false;
     apartment.value = { ...apartmentDefaultValue };
+    getListApartments(filter);
 };
 
 const handleDelete = (data: Apartment) => {

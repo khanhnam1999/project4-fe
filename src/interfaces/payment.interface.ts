@@ -5,6 +5,8 @@ import dayjs from "dayjs";
 export interface Payment {
     paymentId: string;
     residentId: string;
+    contractId?: string;
+    bookingId?: string;
     resident?: Resident;
     residentName?: string;
     fullName?: string;
