@@ -1,8 +1,12 @@
 import * as signalR from "@microsoft/signalr";
+import { CookieService } from "./cookie.service";
 
 // Khởi tạo kết nối tới endpoint đã map ở Program.cs
 const connection = new signalR.HubConnectionBuilder()
-    .withUrl("http://localhost:5207/notificationHub")
+    .withUrl("http://localhost:5207/notificationHub", {
+        // Hub có [Authorize], vì vậy phải gửi cùng JWT đang dùng cho các API.
+        accessTokenFactory: () => CookieService.get("token") ?? "",
+    })
     .withAutomaticReconnect() // Tự động kết nối lại nếu mất mạng
     .build();
 

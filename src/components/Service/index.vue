@@ -69,16 +69,36 @@
             >
                 <a-form layout="vertical">
                     <a-row :gutter="16">
-                        <a-col :span="12">
+                        <a-col :span="8">
                             <a-form-item label="Tên dịch vụ">
                                 <a-input v-model:value="serviceDetail.name" />
                             </a-form-item>
                         </a-col>
-                        <a-col :span="12">
-                            <a-form-item label="Giá">
+                        <a-col :span="8">
+                            <a-form-item label="Giá theo ngày">
                                 <a-input-number
                                     style="width: 100%"
                                     v-model:value="serviceDetail.price"
+                                    :formatter="
+                                        (a: any) =>
+                                            a.replace(
+                                                /\B(?=(\d{3})+(?!\d))/g,
+                                                ',',
+                                            )
+                                    "
+                                    :parser="(a: any) => a.replace(/,/g, '')"
+                                    prefix="VNĐ"
+                                />
+                            </a-form-item>
+                        </a-col>
+                        <a-col :span="8">
+                            <a-form-item label="Giá theo tháng">
+                                <a-input-number
+                                    style="width: 100%"
+                                    v-model:value="
+                                        serviceDetail.monthlyPrice
+                                    "
+                                    :min="0"
                                     :formatter="
                                         (a: any) =>
                                             a.replace(
@@ -138,7 +158,7 @@ const modalSubmitLoading = ref<boolean>(false);
 
 const showModal = (isEdit: boolean, data?: Service) => {
     if (data) {
-        serviceDetail.value = data;
+        serviceDetail.value = { ...data };
     }
     isEditModal.value = isEdit;
     openModal.value = true;
@@ -154,18 +174,28 @@ const showDrawer = (data: Service) => {
     serviceDetail.value = data;
 };
 
-const onClose = () => {
-    openDrawer.value = false;
-};
-
 const handleSubmit = () => {
+    const name = serviceDetail.value.name.trim();
+    if (!name) {
+        message.warning("Vui lòng nhập tên dịch vụ");
+        return;
+    }
+    if (
+        serviceDetail.value.price < 0 ||
+        serviceDetail.value.monthlyPrice < 0
+    ) {
+        message.warning("Giá dịch vụ không được nhỏ hơn 0");
+        return;
+    }
+
+    serviceDetail.value.name = name;
     modalSubmitLoading.value = true;
     if (isEditModal.value) {
         api.put(
             `/Services/${serviceDetail.value.serviceId}`,
             serviceDetail.value,
         )
-            .then((res) => {
+            .then(() => {
                 message.success("Sửa thông tin thành công!");
             })
             .catch((err) => {
@@ -178,12 +208,22 @@ const handleSubmit = () => {
             });
     } else {
         api.post(`/Services`, { ...serviceDetail.value, serviceId: undefined })
-            .then((res) => {
+            .then(() => {
                 message.success("Thêm mới dịch vụ thành công!");
                 getListService();
             })
             .catch((err) => {
-                message.error("Thêm mới dịch vụ thất bại");
+                const validationErrors = err.response?.data?.errors;
+                const validationMessage = validationErrors
+                    ? Object.values(validationErrors).flat().join("; ")
+                    : undefined;
+                message.error(
+                    validationMessage ||
+                        err.response?.data?.message ||
+                        (typeof err.response?.data === "string"
+                            ? err.response.data
+                            : "Thêm mới dịch vụ thất bại"),
+                );
                 console.log(err);
             })
             .finally(() => {
@@ -203,7 +243,7 @@ const handleDelete = (data: Service) => {
         cancelText: "Đóng",
         onOk() {
             api.post("/Services/delete", [data.serviceId])
-                .then((res) => {
+                .then(() => {
                     message.success(`Xóa dịch vụ ${data.name} thành công`);
                     const index = services.value?.findIndex(
                         (i) => i.serviceId == data.serviceId,
@@ -212,7 +252,7 @@ const handleDelete = (data: Service) => {
                         services.value.splice(index, 1);
                     }
                 })
-                .catch((err) => {
+                .catch(() => {
                     message.error(`Xóa dịch vụ ${data.name} thất bại`);
                 });
         },

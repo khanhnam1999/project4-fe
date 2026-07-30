@@ -27,47 +27,54 @@
                         {{ item.label }}
                     </a-select-option>
                 </a-select>
-                <a-input-search
-                    v-if="searchField === 'Title'"
-                    enter-button="Tìm kiếm"
-                    style="width: 420px"
-                    placeholder="Nhập tiêu đề thanh toán"
-                    @search="handleSearch"
-                >
-                    <template #addonBefore>
-                        <a-select
-                            v-model:value="searchField"
-                            style="width: 140px"
-                        >
-                            <a-select-option value="Title">
-                                Tiêu đề
-                            </a-select-option>
-                            <a-select-option value="PaymentDate">
-                                Ngày thanh toán
-                            </a-select-option>
-                        </a-select>
-                    </template>
-                </a-input-search>
-                <a-input-group v-else compact style="width: 420px">
-                    <a-select
-                        v-model:value="searchField"
-                        style="width: 140px"
-                    >
-                        <a-select-option value="Title">
-                            Tiêu đề
-                        </a-select-option>
-                        <a-select-option value="PaymentDate">
-                            Ngày thanh toán
-                        </a-select-option>
-                    </a-select>
-                    <a-date-picker
-                        v-model:value="searchDate"
-                        format="DD/MM/YYYY"
-                        placeholder="Chọn ngày thanh toán"
+                <a-input-group compact style="width: 300px">
+                    <a-auto-complete
+                        v-model:value="residentSearchInput"
+                        :options="residentSuggestions"
+                        :filter-option="filterSuggestion"
                         allow-clear
-                        style="width: 280px"
+                        placeholder="Tên cư dân"
+                        style="width: 235px"
+                        @select="handleResidentSearch"
+                        @clear="handleResidentSearch('')"
                     />
+                    <a-button
+                        type="primary"
+                        style="width: 65px"
+                        @click="handleResidentSearch(residentSearchInput)"
+                    >
+                        Tìm
+                    </a-button>
                 </a-input-group>
+                <a-input-group compact style="width: 350px">
+                    <a-auto-complete
+                        v-model:value="paymentInfoSearchInput"
+                        :options="paymentInfoSuggestions"
+                        :filter-option="filterSuggestion"
+                        allow-clear
+                        placeholder="Thông tin thanh toán"
+                        style="width: 285px"
+                        @select="handlePaymentInfoSearch"
+                        @clear="handlePaymentInfoSearch('')"
+                    />
+                    <a-button
+                        type="primary"
+                        style="width: 65px"
+                        @click="
+                            handlePaymentInfoSearch(paymentInfoSearchInput)
+                        "
+                    >
+                        Tìm
+                    </a-button>
+                </a-input-group>
+                <a-range-picker
+                    v-model:value="searchDateRange"
+                    format="DD/MM/YYYY"
+                    :placeholder="['Từ ngày', 'Đến ngày']"
+                    allow-clear
+                    style="width: 260px"
+                    @change="handleDateSearch"
+                />
             </template>
         </a-page-header>
         <div style="padding: 14px">
@@ -78,7 +85,7 @@
                 :pagination="false"
             >
                 <template #bodyCell="{ column, text, record }">
-                    <template v-if="column.key === 'paymentDeadline' || column.key === 'paymentDate'">
+                    <template v-if="column.key === 'paymentDeadline'">
                         <a-space direction="vertical">
                             <a-typography-text>
                                 {{ dayjs(text).format("DD/MM/YYYY") }}
@@ -134,22 +141,30 @@
                             Chưa có dữ liệu
                         </a-typography-text>
                     </template>
+                    <template v-else-if="column.key === 'amount'">
+                        <a-typography-text strong>
+                            {{ formatCurrency(text) }}
+                        </a-typography-text>
+                    </template>
                     <template v-else-if="column.key === 'action'">
-                        <a-space direction="vertical">
-                            <!-- <a-button
-                                type="primary"
-                                block
-                                @click="handleSubmit(record)"
-                            >
-                                {{ submitBtnText }}
-                            </a-button>
+                        <a-popconfirm
+                            v-if="record.paymentStatus === 0"
+                            title="Bạn có chắc chắn muốn xóa hóa đơn chưa thanh toán này?"
+                            ok-text="Xóa"
+                            cancel-text="Đóng"
+                            :ok-button-props="{ danger: true }"
+                            @confirm="handleDeletePayment(record)"
+                        >
                             <a-button
-                                block
-                                @click="handleSubmit(record, true)"
+                                danger
+                                :loading="record.deleteLoading"
                             >
-                                Hủy
-                            </a-button> -->
-                        </a-space>
+                                Xóa hóa đơn
+                            </a-button>
+                        </a-popconfirm>
+                        <a-typography-text v-else type="secondary">
+                            Không thể xóa
+                        </a-typography-text>
                     </template>
                 </template>
             </a-table>
@@ -174,7 +189,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { reactive, ref, watchPostEffect } from "vue";
+import { onMounted, reactive, ref, watchPostEffect } from "vue";
 import { getCollection, type Filter } from "../../interfaces/base.interface";
 import api from "../../middleware/axios.interceptor";
 import { message } from "ant-design-vue";
@@ -202,12 +217,17 @@ const columns = [
         key: "description",
     },
     {
+        title: "Số tiền phải thanh toán",
+        dataIndex: "amount",
+        key: "amount",
+    },
+    {
         title: "Ngày hết hạn",
         dataIndex: "paymentDeadline",
         key: "paymentDeadline",
     },
     {
-        title: "Ngày tạo payment",
+        title: "Ngày xác nhận",
         dataIndex: "createdDate",
         key: "createdDate",
     },
@@ -222,15 +242,19 @@ const columns = [
         key: "paymentDate",
     },
     {
-        title: "",
+        title: "Thao tác",
         dataIndex: "paymentId",
         key: "action",
     },
 ];
 const selectedKey = ref<number>(-1);
-const searchField = ref<"Title" | "PaymentDate">("Title");
-const searchValue = ref<string>("");
-const searchDate = ref<Dayjs>();
+const residentSearchInput = ref<string>("");
+const paymentInfoSearchInput = ref<string>("");
+const residentSearchValue = ref<string>("");
+const paymentInfoSearchValue = ref<string>("");
+const searchDateRange = ref<[Dayjs, Dayjs]>();
+const residentSuggestions = ref<{ value: string; label: string }[]>([]);
+const paymentInfoSuggestions = ref<{ value: string; label: string }[]>([]);
 const loading = ref<boolean>(false);
 const payments = ref<Payment[]>([]);
 const totalRecords = ref<number>(0);
@@ -238,7 +262,7 @@ const filter = reactive<Filter>({
     page: 1,
     limit: 20,
     conditions: [],
-    sortName: "ModifiedAt",
+    sortName: "ModifiedDate",
     sortMethod: "DESC",
 });
 
@@ -250,9 +274,57 @@ const getPaymentMethodInfo = (method: number) => {
     return paymentMethodData.find((a) => a.value === method);
 };
 
-const handleSearch = (value: string) => {
-    searchValue.value = value.trim();
+const handleResidentSearch = (value: string) => {
+    residentSearchValue.value = value.trim();
     filter.page = 1;
+};
+
+const handlePaymentInfoSearch = (value: string) => {
+    paymentInfoSearchValue.value = value.trim();
+    filter.page = 1;
+};
+
+const handleDateSearch = () => {
+    filter.page = 1;
+};
+
+const filterSuggestion = (
+    input: string,
+    option: { value: string; label: string },
+) => option.value.toLocaleLowerCase().includes(input.toLocaleLowerCase());
+
+const formatCurrency = (value: number | string) =>
+    `${new Intl.NumberFormat("vi-VN").format(Number(value) || 0)} ₫`;
+
+const loadSearchSuggestions = async () => {
+    try {
+        const response = await api.post("/Payments/filter", {
+            page: 0,
+            limit: 0,
+            conditions: [],
+            sortName: "ModifiedDate",
+            sortMethod: "DESC",
+        });
+        const allPayments = getCollection<Payment>(response.data.results);
+
+        // Gợi ý lấy từ DTO filter vì DTO này luôn có sẵn residentName.
+        residentSuggestions.value = [
+            ...new Set(
+                allPayments
+                    .map((item) => item.residentName ?? "")
+                    .filter(Boolean),
+            ),
+        ].map((value) => ({ value, label: value }));
+        paymentInfoSuggestions.value = [
+            ...new Set(
+                allPayments
+                    .flatMap((item) => [item.title, item.description])
+                    .filter(Boolean),
+            ),
+        ].map((value) => ({ value, label: value }));
+    } catch (error) {
+        console.log("Không tải được gợi ý tìm kiếm hóa đơn", error);
+    }
 };
 
 const handleChangePaymentStatus = (record: Payment) => {
@@ -261,23 +333,11 @@ const handleChangePaymentStatus = (record: Payment) => {
         return;
     }
 
-    const data: Payment = {
-        paymentId: record.paymentId,
-        residentId: record.residentId,
-        title: record.title,
-        amount: record.amount,
-        paymentDeadline: record.paymentDeadline,
-        description: record.description,
-        paymentStatus: record.paymentStatus,
-        paymentType: record.paymentType,
-        status: 3,
-    };
-
     record.statusLoading = true;
     api.put(`/Payments/transactions/${record.transactionId}/confirm`)
         .then(() => {
             record.paymentStatus = 3;
-            record.paymentDate = dayjs();
+            record.paymentDate = dayjs().toISOString();
             message.success("Thay đổi trạng thái thành công");
         })
         .catch(() => {
@@ -288,6 +348,33 @@ const handleChangePaymentStatus = (record: Payment) => {
         });
 };
 
+const handleDeletePayment = async (record: Payment) => {
+    if (record.paymentStatus !== 0) {
+        message.warning("Chỉ có thể xóa hóa đơn chưa thanh toán");
+        return;
+    }
+
+    record.deleteLoading = true;
+    try {
+        // Backend xóa mềm nên hóa đơn không còn xuất hiện trên dashboard
+        // và ứng dụng cư dân, nhưng dữ liệu vẫn được giữ để đối soát.
+        await api.post("/Payments/delete", [record.paymentId]);
+        payments.value = payments.value.filter(
+            (item) => item.paymentId !== record.paymentId,
+        );
+        totalRecords.value = Math.max(0, totalRecords.value - 1);
+        message.success("Xóa hóa đơn thành công");
+    } catch (error: any) {
+        const backendMessage =
+            typeof error?.response?.data === "string"
+                ? error.response.data
+                : error?.response?.data?.message;
+        message.error(backendMessage || "Xóa hóa đơn thất bại");
+    } finally {
+        record.deleteLoading = false;
+    }
+};
+
 const getListPayments = (filterSearch: Filter) => {
     loading.value = true;
     Promise.all([
@@ -296,8 +383,11 @@ const getListPayments = (filterSearch: Filter) => {
     ])
         .then(([res, allPaymentsResponse]) => {
             const { results, totalRecords } = res.data;
+            const allPayments = getCollection<Payment>(
+                allPaymentsResponse.data,
+            );
             const createdDates = new Map<string, Payment["createdDate"]>(
-                getCollection<Payment>(allPaymentsResponse.data).map(
+                allPayments.map(
                     (item): [string, Payment["createdDate"]] => [
                         item.paymentId,
                         item.createdDate,
@@ -306,16 +396,6 @@ const getListPayments = (filterSearch: Filter) => {
             );
 
             payments.value = getCollection<Payment>(results)
-                .filter(
-                    (item) =>
-                        searchField.value !== "PaymentDate" ||
-                        !searchDate.value ||
-                        (item.paymentDate &&
-                            dayjs(item.paymentDate).isSame(
-                                searchDate.value,
-                                "day",
-                            )),
-                )
                 .map((item) => {
                     const account = item.resident?.account;
 
@@ -325,6 +405,7 @@ const getListPayments = (filterSearch: Filter) => {
                             item.createdDate ??
                             createdDates.get(item.paymentId),
                         statusLoading: false,
+                        deleteLoading: false,
                         fullName:
                             item.residentName ?? account?.fullName ?? "",
                         phoneNumber: account?.phoneNumber,
@@ -332,10 +413,7 @@ const getListPayments = (filterSearch: Filter) => {
                     };
                 });
             
-            totalRecords.value =
-                searchField.value === "PaymentDate" && searchDate.value
-                ? payments.value.length
-                : totalRecords;  
+            totalRecords.value = totalRecords;
         })
         .catch((err) => {
             console.log(err);
@@ -348,10 +426,31 @@ const getListPayments = (filterSearch: Filter) => {
 watchPostEffect(() => {
     const conditions: Filter["conditions"] = [];
 
-    if (searchField.value === "Title" && searchValue.value) {
+    if (residentSearchValue.value) {
         conditions.push({
-            key: searchField.value,
-            value: searchValue.value,
+            key: "ResidentName",
+            value: residentSearchValue.value,
+        });
+    }
+
+    if (paymentInfoSearchValue.value) {
+        conditions.push({
+            key: "PaymentInfo",
+            value: paymentInfoSearchValue.value,
+        });
+    }
+
+    if (searchDateRange.value?.[0]) {
+        conditions.push({
+            key: "PaymentDateFrom",
+            value: searchDateRange.value[0].format("YYYY-MM-DD"),
+        });
+    }
+
+    if (searchDateRange.value?.[1]) {
+        conditions.push({
+            key: "PaymentDateTo",
+            value: searchDateRange.value[1].format("YYYY-MM-DD"),
         });
     }
 
@@ -364,16 +463,10 @@ watchPostEffect(() => {
 
     getListPayments({
         ...filter,
-        page:
-            searchField.value === "PaymentDate" && searchDate.value
-                ? 0
-                : filter.page,
-        limit:
-            searchField.value === "PaymentDate" && searchDate.value
-                ? 0
-                : filter.limit,
         conditions,
     });
 });
+
+onMounted(loadSearchSuggestions);
 </script>
 <style lang=""></style>
