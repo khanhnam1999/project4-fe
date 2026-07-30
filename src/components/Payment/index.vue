@@ -7,12 +7,11 @@
                 top: 0;
                 z-index: 100;
             "
-            title="Trang thanh toán"
+            title="Danh sách thanh toán"
         >
             <template #extra>
                 <a-select
                     v-model:value="selectedKey"
-                    allowClear
                     style="width: 200px"
                     placeholder="Phương thức thanh toán"
                 >
@@ -207,7 +206,7 @@ const columns = [
         key: "paymentDeadline",
     },
     {
-        title: "Ngày tạo payment",
+        title: "Ngày tạo phiếu",
         dataIndex: "createdDate",
         key: "createdDate",
     },
