@@ -123,7 +123,7 @@ interface PaymentReportDto {
     count: number;
 }
 type RangeValue = [Dayjs, Dayjs];
-const queryDate = ref<RangeValue>([dayjs().startOf("month"), dayjs()]);
+const queryDate = ref<RangeValue>([dayjs().startOf("year"), dayjs()]);
 const periodType = ref<string>("monthly");
 const paymentReport = ref<PaymentReportDto[]>([]);
 
