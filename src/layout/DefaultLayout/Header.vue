@@ -10,7 +10,7 @@
         <slot />
         <div>
             <a-divider>
-                <Notification />
+                <!-- <Notification /> -->
                 <a-dropdown
                     :trigger="['click']"
                     :arrow="{ pointAtCenter: true }"

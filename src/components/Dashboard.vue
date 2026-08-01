@@ -60,6 +60,7 @@
                     :disabledDate="disabledDate"
                     :defaultValue="[dayjs().startOf('month'), dayjs()]"
                     :defaultPickerValue="[dayjs().startOf('month'), dayjs()]"
+                    :allow-clear="false"
                 />
             </a-space>
             <div style="margin-top: 12px;">
@@ -157,7 +158,9 @@ const chartOptions = computed(() => ({
         text: "Thống kê thanh toán",
         align: "center",
     },
-    labels: paymentReport.value.length ? paymentReport.value.map((r) => `${r.month}/${r.year}`) : "",
+    labels: periodType.value === "monthly"
+                ? paymentReport.value.length ? paymentReport.value.map((r) => `${r.month}/${r.year}`) : ""
+                : paymentReport.value.length ? paymentReport.value.map((r) => `Tuần ${r.week } năm ${r.year}`) : "",
     grid: {
         row: {
             colors: ["#f3f3f3", "transparent"], // takes an array which will be repeated on columns
